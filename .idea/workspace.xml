@@ -48,7 +48,13 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="26439653-e476-4211-bcbd-4ff0eb569dd6" name="Changes" comment="" />
+    <list default="true" id="26439653-e476-4211-bcbd-4ff0eb569dd6" name="Changes" comment="Second commit">
+      <change beforePath="$PROJECT_DIR$/Attendent.h" beforeDir="false" afterPath="$PROJECT_DIR$/Attendent.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Flight.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Flight.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Flight.h" beforeDir="false" afterPath="$PROJECT_DIR$/Flight.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Passenger.h" beforeDir="false" afterPath="$PROJECT_DIR$/Passenger.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmake-build-debug/Testing/Temporary/LastTest.log" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/Testing/Temporary/LastTest.log" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -94,6 +100,7 @@
     "WebServerToolWindowFactoryState": "false",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "main",
     "last_opened_file_path": "/Users/jonathanzhu/CLionProjects/Airplane_Booking_System",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -112,11 +119,6 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.Airplane-Booking-System">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Airplane-Booking-System" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Airplane-Booking-System" TARGET_NAME="Airplane-Booking-System" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Airplane-Booking-System" RUN_TARGET_NAME="Airplane-Booking-System">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -257,6 +259,11 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <list>
       <item itemvalue="CMake Application.Airplane-Booking-System" />
       <item itemvalue="CMake Application.ContinuousBuild" />
@@ -307,7 +314,16 @@
       <workItem from="1686062774035" duration="1253000" />
       <workItem from="1686064639623" duration="1888000" />
       <workItem from="1686086463207" duration="2891000" />
+      <workItem from="1686089429553" duration="6841000" />
     </task>
+    <task id="LOCAL-00001" summary="Second commit">
+      <created>1686089661133</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1686089661133</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -329,5 +345,9 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Second commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="Second commit" />
   </component>
 </project>
