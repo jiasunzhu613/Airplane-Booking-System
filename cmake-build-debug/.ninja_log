@@ -1,8 +1,0 @@
-# ninja log v5
-3	116	1686089706644939528	CMakeFiles/Airplane-Booking-System.dir/Airport.cpp.o	e914fd7f01b189d7
-3	287	1686089706813503247	CMakeFiles/Airplane-Booking-System.dir/main.cpp.o	33a182579d562dea
-2	1144	1686089707663710835	CMakeFiles/Airplane-Booking-System.dir/Passenger.cpp.o	774403f98b85f0b7
-1	1145	1686089707665823079	CMakeFiles/Airplane-Booking-System.dir/Person.cpp.o	c89a43c4b5db3b87
-2	1146	1686089707663815820	CMakeFiles/Airplane-Booking-System.dir/Attendent.cpp.o	cb87102f9b4e916a
-2	1180	1686089707707229719	CMakeFiles/Airplane-Booking-System.dir/Flight.cpp.o	9bf84faf8d67c999
-1180	1467	1686089707988935967	Airplane-Booking-System	5155e7a127fead2d
