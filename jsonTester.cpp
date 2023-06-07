@@ -139,7 +139,7 @@ int main(){
     cout << "Grade: " << actualJSON["Grade"] << endl;
 
     //change value of key
-    actualJSON["Name"] = "Your father";
+    actualJSON["Name"] = "hello";
     //creat new Json::Value
     Json::Value newValue;
     newValue["StudentID"] = "S13978203";
@@ -156,7 +156,7 @@ int main(){
     cout << "work1" << endl;
     Json::Value newnewValue;
     newnewValue["Student ID"] = "S29839028";
-    newnewValue["Address"] = "123 the bomb street";
+    newnewValue["Address"] = "123 the hello street";
     actualJSON["Students"]["Bobby"] = newnewValue;
 
     cout << "work2" << endl;
