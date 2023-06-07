@@ -7,7 +7,7 @@
 #define AIRPLANE_BOOKING_SYSTEM_ATTENDENT_H
 
 
-class Attendent : Person{
+class Attendent : public Person{
 private:
     string attendentID;
 public:

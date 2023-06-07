@@ -4,8 +4,8 @@
 
 #include "Flight.h"
 
-const static int NUM_OF_PASSENGERS = 11;
 
+Flight::Flight(std::string dest, int t) : destination{dest}, time{t} {}
 array<Passenger *, NUM_OF_PASSENGERS> Flight::getPassengers() const {
     return passengers;
 }
