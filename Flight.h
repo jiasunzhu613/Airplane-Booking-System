@@ -4,7 +4,10 @@
 /*
  *
  */
+#include <utility>
+#include <chrono>
 #include "Passenger.h"
+#include "Airport.h"
 #include <vector>
 #include <array>
 
@@ -26,15 +29,20 @@ class Flight {
 private:
     array<Passenger*, NUM_OF_PASSENGERS> passengers{};
     array<bool, NUM_OF_PASSENGERS> seatTaken{};
-    string destination;
+    Airport* from;
+    Airport* to;
     int time;
 
 public:
-    Flight();
-    Flight(string dest, int t);
+    Flight(Airport* f, Airport* t, int tt);
     array<Passenger*, NUM_OF_PASSENGERS> getPassengers() const;
+    Airport* getFrom() const;
+    Airport* getTo() const;
+    int getTime() const;
+    void setFrom(Airport* f);
+    void setTo(Airport* t);
+    void setTime(int t);
     void buySeat(Passenger passenger, int ind);
-
 };
 
 

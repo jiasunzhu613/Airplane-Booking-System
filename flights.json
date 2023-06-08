@@ -2,31 +2,37 @@
   "YYZ":
   {
     "Name" : "Toronto Pearson International Airport",
+    "From" : "YOW",
     "Time" : 87
   },
   "YTZ":
   {
     "Name" : "Billy Bishop Toronto City Airport",
+    "From" : "YOW",
     "Time" : 88
   },
   "YHM":
   {
     "Name" : "John C. Munro Hamilton International Airport",
+    "From" : "YOW",
     "Time" : 150
   },
   "YXU":
   {
     "Name" : "London International Airport",
+    "From" : "YOW",
     "Time" : 157
   },
   "YGK":
   {
     "Name" : "Kingston Norman Rogers Airport",
+    "From" : "YOW",
     "Time" : 121
   },
   "YCM":
   {
     "Name" : "Niagara District Airport",
+    "From" : "YOW",
     "Time" : 185
   }
 
