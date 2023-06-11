@@ -1,0 +1,14 @@
+//
+// Created by Jonathan Zhu on 2023-06-11.
+//
+
+#ifndef AIRPLANE_BOOKING_SYSTEM_FLIGHTDB_H
+#define AIRPLANE_BOOKING_SYSTEM_FLIGHTDB_H
+
+
+class FlightDB {
+
+};
+
+
+#endif //AIRPLANE_BOOKING_SYSTEM_FLIGHTDB_H

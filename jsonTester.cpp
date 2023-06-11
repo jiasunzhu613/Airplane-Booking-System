@@ -13,6 +13,9 @@
 #include <json/writer.h>
 #include <fstream>
 
+#include <chrono>
+#include "date/date.h"
+
 
 using namespace std;
 
@@ -94,6 +97,22 @@ bool validateCourseCode(string courseCode){
 }
 
 int main(){
+    using namespace date;
+    using namespace std::chrono;
+    std::cout << system_clock::now() << " UTC\n";
+//    auto time = make_time(tp-dp);
+
+
+    int y, m, d, h, min;
+    cin >> y;
+    cin >> m;
+    cin >> d;
+    cin >> h;
+    cin >> min;
+//    constexpr system_clock::time_point tp = sys_days{January/9/2014} + 12h + 35min + 34s;
+    auto x1 = sys_days{date::year{y}/m/d} + hours{h} + minutes{min};
+    cout << x1 << endl;
+
     std::regex course_match{"([A-Z]{3}[1-4](O|C|M|UE|U))"};
     cout << std::regex_match("ENG4UE", course_match) << endl;
 //    cout << validateCourseCode("ENG") << endl;

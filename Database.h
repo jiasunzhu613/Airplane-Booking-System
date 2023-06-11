@@ -8,6 +8,11 @@
 #include <json/writer.h>
 #include <fstream>
 #include <sstream>
+#include "FlightTimesDB.h"
+#include "Airport.h"
+#include "Flight.h"
+#include "Passenger.h"
+#include "Attendent.h"
 
 using std::string, std::cout, std::endl, std::ifstream, std::ofstream;
 
@@ -16,6 +21,11 @@ using std::string, std::cout, std::endl, std::ifstream, std::ofstream;
 
 const static string FLIGHTS_FILE_LOCATION = "../flights.json";
 
+class FlightTimesDB;
+class Airport;
+class Flight;
+class Passenger;
+class Attendent;
 class Database {
 private:
     ifstream in;
@@ -24,8 +34,8 @@ private:
     Json::Reader jsonReader;
 public:
     Database();
-
-
+    void load(FlightTimesDB*);
+    void save(FlightTimesDB*);
 };
 
 

@@ -6,5 +6,5 @@
     "name" : "imgui",
     "version>=" : "1.89.4#1",
     "features" : [ "glfw-binding", "opengl3-binding" ]
-  }, "glfw3", "glad", "opengl", "jsoncpp", "stb", "fmt"]
+  }, "glfw3", "glad", "opengl", "jsoncpp", "stb", "fmt", "date"]
 }

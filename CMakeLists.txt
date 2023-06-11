@@ -9,11 +9,12 @@ enable_testing()
 
 set(PRJ_HEADERS Person.h Passenger.h Attendent.h Flight.h Airport.h)
 set(PRJ_SOURCES Person.cpp Passenger.cpp Attendent.cpp Flight.cpp Airport.cpp)
-#set(PRJ_MAIN database.cpp)
 set(PRJ_MAIN main.cpp)
 add_executable(${PROJECT_NAME} ${PRJ_HEADERS} ${PRJ_SOURCES} ${PRJ_MAIN})
 
+#set(PRJ_MAIN jsonTester.cpp)
 #add_executable(${PROJECT_NAME} ${PRJ_MAIN})
+
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -39,6 +40,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${Stb_INCLUDE_DIR})
 
 find_package(fmt CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
+
+find_package(date CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE date::date date::date-tz)
 
 #find_package(unofficial-sqlite3 CONFIG REQUIRED)
 #target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::sqlite3::sqlite3)
