@@ -1,6 +1,8 @@
 //
 // Created by Jonathan Zhu on 2023-06-11.
 //
+#pragma once
+
 #include <sstream>
 #include <string>
 #include <unordered_map>
