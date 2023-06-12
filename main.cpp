@@ -1,129 +1,270 @@
-// Dear ImGui: standalone example application for GLFW + OpenGL 3, using programmable pipeline
-// (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan/Metal graphics context creation, etc.)
-// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
-// Read online: https://github.com/ocornut/imgui/tree/master/docs
+/*******************************/
+/********Includes/Set Up********/
+/*******************************/
 
 #include <fmt/core.h>
-#include <chrono>
-#include "date/date.h"
+#include <stdio.h>
+
+#include <algorithm>
+#include <iostream>
+#include <regex>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
+#include "FlightDB.h"
+#include "Passenger.h"
+#include "Attendent.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include <stdio.h>
-#include <sstream>
 
-using namespace std::chrono;
-using namespace date;
+#define STB_IMAGE_IMPLEMENTATION
 
-using std::string, std::stringstream;
+#include "stb_image.h"
+
+using std::cout, std::cerr, std::cin, std::endl, std::unordered_set,
+        std::to_string, std::string, std::vector, std::sort;
+
 #define GL_SILENCE_DEPRECATION
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
 #endif
-#include <GLFW/glfw3.h> // Will drag system OpenGL headers
 
-// [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
-// To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
-// Your own project should not be affected, as you are likely to link with a newer binary of GLFW that is adequate for your version of Visual Studio.
-#if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
+#include <GLFW/glfw3.h>  // Will drag system OpenGL headers
+
+// [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to
+// maximize ease of testing and compatibility with old VS compilers. To link
+// with VS2010-era libraries, VS2015+ requires linking with
+// legacy_stdio_definitions.lib, which we do using this pragma. Your own project
+// should not be affected, as you are likely to link with a newer binary of GLFW
+// that is adequate for your version of Visual Studio.
+#if defined(_MSC_VER) && (_MSC_VER >= 1900) && \
+    !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-// This example can also compile and run with Emscripten! See 'Makefile.emscripten' for details.
+// This example can also compile and run with Emscripten! See
+// 'Makefile.emscripten' for details.
 #ifdef __EMSCRIPTEN__
 #include "../libs/emscripten/emscripten_mainloop_stub.h"
 #endif
 
-static void glfw_error_callback(int error, const char* description)
-{
-    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
-}
+// Declare global variables
+FlightDB db;
+std::regex course_match{"([A-Z]{3}([1-2]O|[1-4]C|[1-4]M|[1-4]UE|[1-4]U))"};
+std::regex teacher_match{"([A-Z]{1}\\d{5})"};
+std::regex passenger_match{"([A-Z]{1}\\d{5})"};
+std::regex student_match{"([A-Z]{1}\\d{9})"};
 
-string time_pointToString(system_clock::time_point tp){
-    stringstream ss;
-    ss << tp;
-    return ss.str();
-}
+// Teacher-related form submission validity
+bool valid_id = true;
+bool valid_pw = true;
+bool valid_id_sign_up = true;
+bool valid_pw_sign_up = true;
+bool valid_first_name_sign_up = true;
+bool valid_last_name_sign_up = true;
+bool valid_address_sign_up = true;
+bool valid_phone_sign_up = true;
+bool valid_seat = true;
+
+// Student-related for submission validity
+bool valid_id_create = true;
+bool valid_first_name_create = true;
+bool valid_last_name_create = true;
+bool valid_address_create = true;
+bool valid_grade_create = true;
+ImVec4 table_header_color = ImVec4(0.48f, 0.31f, 0.82f, 1.00f);
+
+//Student Table Sorter
+//struct StudentSorter {
+//    vector<Student *> students;
+//    static const ImGuiTableSortSpecs *s_current_sort_specs;
+//
+//    void init(Course &course, ImGuiTableSortSpecs *sort_specs) {
+//        students.clear();
+//        students.reserve(course.getStudents().size());
+//        students.insert(students.begin(), course.getStudents().begin(),
+//                        course.getStudents().end());
+//
+//        StudentSorter::s_current_sort_specs = sort_specs;
+//        sort(students.begin(), students.end(), CompareWithSortSpecs);
+//    }
+//
+//    static bool CompareWithSortSpecs(const Student *lhs, const Student *rhs) {
+//        for (int n = 0; n < s_current_sort_specs->SpecsCount; ++n) {
+//            const ImGuiTableColumnSortSpecs *sort_spec =
+//                    &StudentSorter::s_current_sort_specs->Specs[n];
+//
+//            int d = 0;
+//
+//            switch (sort_spec->ColumnUserID) {
+//                case SORT_ID:
+//                    d = Student::idCompare(lhs, rhs);
+//                    break;
+//                case SORT_FirstName:
+//                    d = Student::firstNameCompare(lhs, rhs);
+//                    break;
+//                case SORT_LastName:
+//                    d = Student::lastNameCompare(lhs, rhs);
+//                    break;
+//                case SORT_Grade:
+//                    d = Student::gradeCompare(lhs, rhs);
+//                    break;
+//                case SORT_NumLates:
+//                    d = Student::numLatesCompare(lhs, rhs);
+//                    break;
+//            }
+//            if (d != 0)
+//                return (d > 0) ^
+//                       sort_spec->SortDirection == ImGuiSortDirection_Ascending;
+//
+//        }
+//        return Student::idCompare(lhs, rhs);
+//    }
+//};
+//const ImGuiTableSortSpecs *StudentSorter::s_current_sort_specs = NULL;
+
+// Input filter
+struct TextFilters {
+    static int FilterCourseInput(ImGuiInputTextCallbackData *data) {
+        if (data->EventChar < 256 &&
+            strchr("QWERTYUIOPASDFGHJKLZXCVBNMqwertyuio"
+                   "pasdfghjklzxcvbnm1234",
+                   (char)data->EventChar))
+            return 0;
+        return 1;
+    }
+
+    static int FilterTeacherIDInput(ImGuiInputTextCallbackData *data) {
+        if (data->EventChar < 256 &&
+            strchr("Cc1234567890", (char)data->EventChar))
+            return 0;
+        return 1;
+    }
+
+    static int FilterPassengerIDInput(ImGuiInputTextCallbackData *data) {
+        if (data->EventChar < 256 &&
+            strchr("Pp1234567890", (char)data->EventChar))
+            return 0;
+        return 1;
+    }
+
+    static int FilterStudentIDInput(ImGuiInputTextCallbackData *data) {
+        if (data->EventChar < 256 &&
+            strchr("Ss1234567890", (char)data->EventChar))
+            return 0;
+        return 1;
+    }
+
+    static int FilterGradeInput(ImGuiInputTextCallbackData *data) {
+        if (data->EventChar < 256 &&
+            strchr("1234567890", (char)data->EventChar))
+            return 0;
+        return 1;
+    }
+};
+
+// Declare functions (initialized at the bottom of file)
+bool LoadTextureFromFile(const char *, GLuint *, int *, int *);
+
+static void glfw_error_callback(int, const char *);
+
+static void HelpMarker(const char *);
+
+void log();
+
+bool validateInputTeacherID(string);
+
+bool validateInputPassengerID(string);
+
+bool validateInputStudentID(string);
+
+void addingStudentToCourse(string, bool &);
+
+void creatingStudent(bool &);
 
 // Main code
-int main(int, char**)
-{
+int main(int, char **) {
+    db = FlightDB{};
+    db.reset();
+
     glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
-        return 1;
+    if (!glfwInit()) return 1;
 
     // Decide GL+GLSL versions
 #if defined(IMGUI_IMPL_OPENGL_ES2)
     // GL ES 2.0 + GLSL 100
-    const char* glsl_version = "#version 100";
+    const char *glsl_version = "#version 100";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
 #elif defined(__APPLE__)
     // GL 3.2 + GLSL 150
-    const char* glsl_version = "#version 150";
+    const char *glsl_version = "#version 150";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);  // Required on Mac
 #else
     // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 130";
+    const char *glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
+    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+
+    // only glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // 3.0+ only
 #endif
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
-    if (window == nullptr)
-        return 1;
+    GLFWwindow *window = glfwCreateWindow(
+            1280, 720, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
+    if (window == nullptr) return 1;
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(1);  // Enable vsync
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |=
+            ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+    io.ConfigFlags |=
+            ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
     // Setup Dear ImGui style
-//    ImGui::StyleColorsDark();
-//    ImGui::StyleColorsLight();
+    ImGui::StyleColorsDark();
+    // ImGui::StyleColorsLight();
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
-    // - Read 'docs/FONTS.md' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    // - Our Emscripten build process allows embedding fonts to be accessible at runtime from the "fonts/" folder. See Makefile.emscripten for details.
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != nullptr);
+    //States
+    string logged_in_passenger;
+    int pwflags1 = ImGuiInputTextFlags_Password;
+    bool showPW1 = false;
+    int pwflags2 = ImGuiInputTextFlags_Password;
+    bool showPW2 = false;
+    int pwflags3 = ImGuiInputTextFlags_Password;
+    bool showPW3 = false;
+    bool show_log_in_window = true;
+    bool show_logged_in_window = false;
+    bool showAttendentWindow = false;
+    bool showPassengerWindow = false;
 
-    // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    bool use_dark_mode = true;
-    ImVec4 clear_color = ImVec4(0.1f, 0.55f, 0.60f, 1.0f);
 
+
+//    StudentSorter sorterOfStudents;
+//    StudentSorter::s_current_sort_specs = nullptr;
+
+    bool isAddingStudentToCourse = false;
+    bool isCreatingStudent = false;
     // Main loop
 #ifdef __EMSCRIPTEN__
-    // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
-    // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
+    // For an Emscripten build we are disabling file-system access, so let's not
+    // attempt to do a fopen() of the imgui.ini file. You may manually call
+    // LoadIniSettingsFromMemory() to load settings from your own storage.
     io.IniFilename = nullptr;
     EMSCRIPTEN_MAINLOOP_BEGIN
 #else
@@ -131,68 +272,897 @@ int main(int, char**)
 #endif
     {
         // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to
+        // tell if dear imgui wants to use your inputs.
+        // - When io.WantCaptureMouse is true, do not dispatch mouse input data
+        // to your main application, or clear/overwrite your copy of the mouse
+        // data.
+        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input
+        // data to your main application, or clear/overwrite your copy of the
+        // keyboard data. Generally you may always pass all inputs to dear
+        // imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        if (!showPW1)
+            pwflags1 = ImGuiInputTextFlags_Password;
+        else
+            pwflags1 = 0;
+        if (!showPW2)
+            pwflags2 = ImGuiInputTextFlags_Password;
+        else
+            pwflags2 = 0;
+        if (!showPW3)
+            pwflags3 = ImGuiInputTextFlags_Password;
+        else
+            pwflags3 = 0;
+        if (showAttendentWindow){
 
-        if (use_dark_mode){
-            ImGui::StyleColorsDark();
+        }else if (showPassengerWindow){
+            if (show_logged_in_window){
+                static float f = 0.0f;
+                static int counter = 0;
+                ImGui::SetNextWindowSize(ImVec2(800, 400));
+                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                        ImVec2(0.5f, 0.5f));
+                // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                // ImGuiWindowFlags_NoCollapse
+                ImGui::Begin("BUY SEATS!", 0, ImGuiCond_FirstUseEver);
+                vector<string> items{};
+                for (auto [flightID, flight] : db.getFlights()) {
+                    items.push_back(flight.toString());
+                }
+                static int item_current_idx =
+                        0;
+                if (ImGui::BeginListBox(
+                        "##listbox",
+                        ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
+                    for (int n = 0; n < items.size(); n++) {
+                        const bool is_selected = (item_current_idx == n);
+                        if (ImGui::Selectable(items[n].c_str(), is_selected))
+                            item_current_idx = n;
+                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) &&
+                            ImGui::BeginTooltip()) {
+                            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+                            ImGui::TextUnformatted(
+                                    db.getFlights()[items[n]].getDetails().c_str());
+                            ImGui::PopTextWrapPos();
+                            ImGui::EndTooltip();
+                        }
+
+                        // Set the initial focus when opening the combo (scrolling +
+                        // keyboard navigation focus)
+                        if (is_selected) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndListBox();
+                }
+                ImGui::Text("Seat Number You Want To Buy");
+                static char buf1[2] = "";
+                string seatLabel;
+                if (valid_seat)
+                    seatLabel = "##a";
+                else
+                    seatLabel = "SEAT ALREADY TAKEN";
+                ImGui::InputText(
+                        seatLabel.c_str(), buf1, 7,
+                        ImGuiInputTextFlags_EnterReturnsTrue |
+                        ImGuiInputTextFlags_CharsUppercase );  // Display some text (you
+                // can use a format strings
+                // too)
+                if (ImGui::Button("BUY")) {
+                    if (db.getFlights()[items[item_current_idx]].getSeatTaken()[std::stoi(buf1)]){
+                        valid_seat = false;
+                    }else{
+                        valid_seat = true;
+                    }
+
+                    if (valid_seat){
+                        db.getFlights()[items[item_current_idx]].buySeat(&db.getPassengers()[logged_in_passenger], std::stoi(buf1));
+                        db.save();
+                        ImGui::OpenPopup("SEAT PURCHASE SUCCESSFUL!");
+                        ImGui::SetNextWindowSize(ImVec2(400, 100));
+                        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                                ImVec2(0.5f, 0.5f));
+                    }
+                }
+                bool open_buy_seat_success_window = true;
+                if (ImGui::BeginPopupModal("SEAT PURCHASE SUCCESSFUL!",
+                                           &open_buy_seat_success_window)) {
+                    ImGui::Text(fmt::format("YOU HAVE SUCCESSFULLY PURCHASED SEAT {}", buf1).c_str());
+                    for (char &c: buf1) c = '\0';
+                    ImGui::EndPopup();
+                }
+                ImGui::End();
+            }else if (show_log_in_window){
+                static float f = 0.0f;
+                static int counter = 0;
+                ImGui::SetNextWindowSize(ImVec2(400, 200));
+                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                        ImVec2(0.5f, 0.5f));
+                // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                // ImGuiWindowFlags_NoCollapse
+                ImGui::Begin("Log in!", 0, ImGuiCond_FirstUseEver);
+                ImGui::Text("Passenger ID");
+                static char buf1[7] = "";
+                string IDLabel;
+                if (valid_id)
+                    IDLabel = "##a";
+                else
+                    IDLabel = "INVALID ID";
+                ImGui::InputText(
+                        IDLabel.c_str(), buf1, 7,
+                        ImGuiInputTextFlags_EnterReturnsTrue |
+                        ImGuiInputTextFlags_CharsUppercase |
+                        ImGuiInputTextFlags_CallbackCharFilter,
+                        TextFilters::FilterPassengerIDInput);  // Display some text (you
+                // can use a format strings
+                // too)
+                ImGui::Text("Password");
+                static char password[64] = "";
+                string PWLabel;
+                if (valid_pw)
+                    PWLabel = "##b";
+                else
+                    PWLabel = "NON-MATCHING PW";
+                ImGui::InputText(PWLabel.c_str(), password, IM_ARRAYSIZE(password),
+                                 pwflags1);
+                ImGui::SameLine();
+                ImGui::Checkbox("Show Password", &showPW1);
+                if (ImGui::Button("Sign In")) {
+                    valid_id = false;
+                    valid_pw = false;
+                    for (auto [passengerID, passenger] : db.getPassengers()) {
+                        if (passengerID == buf1 and passenger.getPassword() == password) {
+                            logged_in_passenger = buf1;
+                            show_logged_in_window = true;
+                            valid_id = true;
+                            valid_pw = true;
+                            for (char &c: buf1) c = '\0';
+                            for (char &c: password) c = '\0';
+                            break;
+                        } else if (passengerID == buf1) {
+                            valid_id = true;
+                        }
+                    }
+                }
+                ImGui::SameLine();
+                ImGui::Text("New Passenger?");
+                ImGui::SameLine();
+                if (ImGui::Button("Create Passenger ID")) {
+                    for (char &c: buf1) c = '\0';
+                    for (char &c: password) c = '\0';
+                    valid_id = true;
+                    valid_pw = true;
+                    showPW1 = false;
+                    show_log_in_window = false;
+                }
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                            1000.0f / io.Framerate, io.Framerate);
+                ImGui::End();
+            }else{
+                ImGui::SetNextWindowSize(ImVec2(400, 200));
+                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                        ImVec2(0.5f, 0.5f));
+                // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                // ImGuiWindowFlags_NoCollapse
+                ImGui::Begin("Sign Up!", 0,
+                             ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoResize);
+                ImGui::Text("Passenger ID");
+                static char id1[7] = "";
+                string IDLabel;
+                if (valid_id_sign_up)
+                    IDLabel = "##a";
+                else
+                    IDLabel = "INVALID ID";
+                ImGui::InputText(
+                        IDLabel.c_str(), id1, 7,
+                        ImGuiInputTextFlags_EnterReturnsTrue |
+                        ImGuiInputTextFlags_CharsUppercase |
+                        ImGuiInputTextFlags_CallbackCharFilter,
+                        TextFilters::FilterPassengerIDInput);  // Display some text (you
+                // can use a format strings
+                // too)
+                ImGui::NewLine();
+
+                ImGui::Text("First Name");
+                static char fn1[64] = "";
+                string FNLabel;
+                if (valid_first_name_sign_up)
+                    FNLabel = "##b";
+                else
+                    FNLabel = "REQUIRED";
+                ImGui::InputText(
+                        FNLabel.c_str(), fn1,
+                        64);  // Display some text (you can use a format strings too)
+                ImGui::NewLine();
+
+                ImGui::Text("Last Name");
+                static char ln1[64] = "";
+                string LNLabel;
+                if (valid_last_name_sign_up)
+                    LNLabel = "##c";
+                else
+                    LNLabel = "REQUIRED##a";
+                ImGui::InputText(
+                        LNLabel.c_str(), ln1,
+                        64);  // Display some text (you can use a format strings too)
+                ImGui::NewLine();
+
+                ImGui::Text("Address");
+                static char address1[64] = "";
+                string ALabel;
+                if (valid_address_sign_up)
+                    ALabel = "##d";
+                else
+                    ALabel = "REQUIRED##b";
+                ImGui::InputText(
+                        ALabel.c_str(), address1,
+                        64);  // Display some text (you can use a format strings too)
+                ImGui::NewLine();
+
+                ImGui::Text("Phone Number");
+//                ImGui::SameLine();
+//                HelpMarker(
+//                        "Each course listed as teachables must follow valid course "
+//                        "code criterions and be separated by a space.");
+                static char phone[64] = "";
+                string PLabel;
+                if (valid_phone_sign_up)
+                    PLabel = "##e";
+                else
+                    PLabel =
+                            "INVALID PHONE NUMBER";
+                ImGui::InputText(
+                        PLabel.c_str(), phone,
+                        64);  // Display some text (you can use a format strings too)
+                ImGui::NewLine();
+
+                ImGui::Text("Password");
+                static char password2[64] = "";
+                string PWLabel1, PWLabel2;
+                if (valid_pw_sign_up) {
+                    PWLabel1 = "##f";
+                    PWLabel2 = "##g";
+                } else {
+                    PWLabel1 = "NON-MATCHING OR UNFILLED PASSWORDS";
+                    PWLabel2 = "NON-MATCHING OR UNFILLED PASSWORDS##";
+                }
+                ImGui::InputText(PWLabel1.c_str(), password2,
+                                 IM_ARRAYSIZE(password2), pwflags2);
+                ImGui::SameLine();
+                ImGui::Checkbox("Show Password", &showPW2);
+                ImGui::NewLine();
+
+                ImGui::Text("Confirm Password");
+                static char password3[64] = "";
+                ImGui::InputText(PWLabel2.c_str(), password3,
+                                 IM_ARRAYSIZE(password3), pwflags3);
+                ImGui::SameLine();
+                ImGui::Checkbox("Show Password##", &showPW3);
+                ImGui::NewLine();
+
+                if (ImGui::Button("Sign Up")) {
+                    valid_id_sign_up = validateInputPassengerID(id1);
+                    valid_pw_sign_up = (strcmp(password2, password3) == 0 and
+                                        (strcmp(password2, "") != 0 and
+                                         strcmp(password3, "") != 0));
+                    valid_first_name_sign_up = strcmp(fn1, "") != 0;
+                    valid_last_name_sign_up = strcmp(ln1, "") != 0;
+                    valid_address_sign_up = strcmp(address1, "") != 0;
+                    valid_phone_sign_up = strcmp(phone, "") != 0;
+
+                    if (valid_id_sign_up and valid_pw_sign_up and
+                        valid_first_name_sign_up and valid_last_name_sign_up and
+                        valid_address_sign_up and valid_phone_sign_up) {
+                        db.addPassenger(Passenger{fn1, ln1, address1, phone, id1,
+                                              password2});
+                        db.save();
+                        ImGui::OpenPopup("ID CREATION SUCCESSFUL!");
+                    }
+                }
+                bool account_creation_success_window = true;
+                if (ImGui::BeginPopupModal("ID CREATION SUCCESSFUL!",
+                                           &account_creation_success_window)) {
+                    ImGui::Text(
+                            "YOUR ID HAS BEEN SUCCESSFULLY CREATED. \nLOG IN "
+                            "THROUGH THE LOG IN WINDOW!");
+                    ImGui::EndPopup();
+                }
+                if (!account_creation_success_window){
+                    for (char &c: id1) c = '\0';
+                    for (char &c: fn1) c = '\0';
+                    for (char &c: ln1) c = '\0';
+                    for (char &c: address1) c = '\0';
+                    for (char &c: phone) c = '\0';
+                    for (char &c: password2) c = '\0';
+                    for (char &c: password3) c = '\0';
+                    valid_id_sign_up = true;
+                    valid_pw_sign_up = true;
+                    valid_first_name_sign_up = true;
+                    valid_last_name_sign_up = true;
+                    valid_address_sign_up = true;
+                    valid_phone_sign_up = true;
+                    showPW2 = false;
+                    showPW3 = false;
+                    show_log_in_window = true;
+                }
+
+                if (ImGui::Button("Return To Log In Window")) {
+                    for (char &c: id1) c = '\0';
+                    for (char &c: fn1) c = '\0';
+                    for (char &c: ln1) c = '\0';
+                    for (char &c: address1) c = '\0';
+                    for (char &c: phone) c = '\0';
+                    for (char &c: password2) c = '\0';
+                    for (char &c: password3) c = '\0';
+                    valid_id_sign_up = true;
+                    valid_pw_sign_up = true;
+                    valid_first_name_sign_up = true;
+                    valid_last_name_sign_up = true;
+                    valid_address_sign_up = true;
+                    valid_phone_sign_up = true;
+                    showPW2 = false;
+                    showPW3 = false;
+                    show_log_in_window = true;
+                }
+
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                            1000.0f / io.Framerate, io.Framerate);
+                ImGui::End();
+            }
         }else{
-            ImGui::StyleColorsLight();
-        }
+            ImGui::SetNextWindowSize(ImVec2(800, 400));
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                    ImVec2(0.5f, 0.5f));
+            ImGui::Begin("##a", 0, ImGuiWindowFlags_NoTitleBar);
+            if (ImGui::Button("ATTENDENT WINDOW")) {
+                showAttendentWindow = true;
+            }
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Text(time_pointToString(system_clock::now()).c_str());
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-            ImGui::Checkbox("Dark Mode", &use_dark_mode);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine(); // makes line under same line as the line above
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            if (ImGui::Button("PASSENGER WINDOW")) {
+                showPassengerWindow = true;
+            }
             ImGui::End();
         }
 
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
+//        log();
+//        if (show_logged_in_window) {
+//            ImGui::SetNextWindowSize(ImVec2(1280, 720));
+//            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+//            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+//                                    ImVec2(0.5f, 0.5f));
+//            ImGui::Begin("##a", 0, ImGuiWindowFlags_NoTitleBar);
+//            static vector<std::string> active_tabs{};
+//            static int next_tab_id = 0;
+//            if (next_tab_id == 0) {
+//                for (auto [courseCode, course] : db.getCourses()) {
+//                    if (course.getTeacher()->getEmployeeId() ==
+//                        logged_in_employee) {
+//                        active_tabs.push_back(courseCode);
+//                        next_tab_id++;
+//                    }
+//                }
+//            }
+//
+//            static ImGuiTabBarFlags tab_bar_flags =
+//                    ImGuiTabBarFlags_AutoSelectNewTabs |
+//                    ImGuiTabBarFlags_Reorderable |
+//                    ImGuiTabBarFlags_FittingPolicyResizeDown |
+//                    ImGuiTabBarFlags_TabListPopupButton;
+//
+//            if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags)) {
+//                // Demo Trailing Tabs: click the "+" button to add a new tab
+//                // (in your app you may want to use a font icon instead of
+//                // the "+") Note that we submit it before the regular tabs,
+//                // but because of the ImGuiTabItemFlags_Trailing flag it
+//                // will always appear at the end.
+//                if (ImGui::TabItemButton("OPEN",
+//                                         ImGuiTabItemFlags_Trailing |
+//                                         ImGuiTabItemFlags_NoTooltip)) {
+//                    ImGui::OpenPopup("OPEN COURSE");
+//                    ImGui::SetNextWindowSize(ImVec2(400, 200));
+//                    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+//                                            ImVec2(0.5f, 0.5f));
+//                }
+//                bool open_course_window = true;
+//                if (ImGui::BeginPopupModal("OPEN COURSE",
+//                                           &open_course_window)) {
+//                    vector<string> items{};
+//                    for (auto [courseCode, course] : db.getCourses()) {
+//                        if (find(active_tabs.begin(), active_tabs.end(),
+//                                 courseCode) == active_tabs.end() and
+//                            course.getTeacher()->getEmployeeId() ==
+//                            logged_in_employee) {
+//                            items.push_back(courseCode);
+//                        }
+//                    }
+//                    static int item_current_idx =
+//                            0;  // Here we store our selection data as an index.
+//                    // Custom size: use all width, 5 items tall
+//                    if (!items.empty())
+//                        ImGui::Text("UNOPENED COURSES:");
+//                    else
+//                        ImGui::Text(
+//                                "ALL AVAILABLE COURSES HAVE ALREADY BEEN OPENED.");
+//                    if (ImGui::BeginListBox(
+//                            "##listbox",
+//                            ImVec2(
+//                                    -FLT_MIN,
+//                                    5 * ImGui::GetTextLineHeightWithSpacing()))) {
+//                        for (int n = 0; n < items.size(); n++) {
+//                            const bool is_selected = (item_current_idx == n);
+//                            if (ImGui::Selectable(items[n].c_str(),
+//                                                  is_selected))
+//                                item_current_idx = n;
+//
+//                            // Set the initial focus when opening the combo
+//                            // (scrolling + keyboard navigation focus)
+//                            if (is_selected) ImGui::SetItemDefaultFocus();
+//                        }
+//                        ImGui::EndListBox();
+//                    }
+//                    if (!items.empty()) {
+//                        if (ImGui::Button("OPEN")) {
+//                            active_tabs.push_back(items[item_current_idx]);
+//                            next_tab_id++;
+//                            ImGui::CloseCurrentPopup();
+//                        }
+//                    } else {
+//                        if (ImGui::Button("CLOSE")) ImGui::CloseCurrentPopup();
+//                    }
+//                    ImGui::EndPopup();
+//                }
+//
+//                if (ImGui::TabItemButton("+",
+//                                         ImGuiTabItemFlags_Trailing |
+//                                         ImGuiTabItemFlags_NoTooltip)) {
+//                    ImGui::OpenPopup("CREATE COURSE");
+//                    ImGui::SetNextWindowSize(ImVec2(400, 200));
+//                    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+//                                            ImVec2(0.5f, 0.5f));
+//                }
+//                bool add_course_window = true;
+//                if (ImGui::BeginPopupModal("CREATE COURSE",
+//                                           &add_course_window)) {
+//                    ImGui::Text("COURSE ID");
+//
+//                    static char buf1[7] = "";
+//                    ImGui::InputText("##a", buf1, 7,
+//                                     ImGuiInputTextFlags_EnterReturnsTrue |
+//                                     ImGuiInputTextFlags_CharsUppercase |
+//                                     ImGuiInputTextFlags_CallbackCharFilter,
+//                                     TextFilters::FilterCourseInput);
+//                    ImGui::SameLine();
+//                    HelpMarker(
+//                            "Only courses that haven't been created and are teachable will be "
+//                            "validated and allowed to be created. Valid course "
+//                            "codes (e.g. MPM4UE, ICS4U, AVI2O) consist of 3 "
+//                            "letters followed by a number course grade then a "
+//                            "course difficulty).");
+//                    bool inTeachables = db.getTeachers()[logged_in_employee].getTeachables().find(buf1) != std::string::npos;
+//                    if (!std::regex_match(buf1, course_match) or !inTeachables) {
+//                        ImGui::Text("INVALID COURSE CODE OR COURSE CODE NOT IN TEACHABLES");
+//                    }else {
+//                        if (ImGui::Button("CREATE")) {
+//                            int count = 1;
+//                            for (auto [courseCode, course] : db.getCourses()) {
+//                                if (buf1 ==
+//                                    courseCode.substr(0, courseCode.find('-')))
+//                                    count += 1;
+//                            }
+//                            Teacher t;
+//                            for (auto [employeeID, teacher] :
+//                                    db.getTeachers()) {
+//                                if (employeeID == logged_in_employee) {
+//                                    t = teacher;
+//                                    break;
+//                                }
+//                            }
+//                            string output = buf1;
+//                            Course c{&t, output, count, {}};
+//                            db.addCourse(c);
+//                            active_tabs.push_back(
+//                                    fmt::format("{}-{:02}", output, count).c_str());
+//                            for (char &c: buf1) c = '\0';
+//                            ImGui::CloseCurrentPopup();
+//                        }
+//                    }
+//                    ImGui::EndPopup();
+//                }
+//
+//                // Submit our regular tabs
+//                for (int n = 0; n < active_tabs.size();) {
+//                    bool open = true;
+//                    char name[16];
+//                    snprintf(name, IM_ARRAYSIZE(name), "%s",
+//                             active_tabs[n].c_str());
+//                    if (ImGui::BeginTabItem(name, &open,
+//                                            ImGuiTabItemFlags_None)) {
+//                        if (ImGui::BeginTable(
+//                                fmt::format("Students of {}", active_tabs[n])
+//                                        .c_str(),
+//                                6,
+//                                ImGuiTableFlags_Sortable |
+//                                ImGuiTableFlags_SortMulti |
+//                                ImGuiTableFlags_RowBg |
+//                                ImGuiTableFlags_Borders |
+//                                ImGuiTableFlags_BordersH |
+//                                ImGuiTableFlags_BordersOuterH |
+//                                ImGuiTableFlags_BordersInnerH |
+//                                ImGuiTableFlags_BordersV |
+//                                ImGuiTableFlags_BordersOuterV |
+//                                ImGuiTableFlags_BordersInnerV |
+//                                ImGuiTableFlags_BordersOuter |
+//                                ImGuiTableFlags_BordersInner)) {
+//                            ImGui::TableSetBgColor(
+//                                    ImGuiTableBgTarget_RowBg0,
+//                                    ImGui::GetColorU32(table_header_color));
+//                            ImGui::TableSetupColumn(
+//                                    "Student ID", ImGuiTableColumnFlags_DefaultSort,
+//                                    0.0f, SORT_ID);
+//                            ImGui::TableSetupColumn("First Name", 0, 0.0f,
+//                                                    SORT_FirstName);
+//                            ImGui::TableSetupColumn("Last Name", 0, 0.0f,
+//                                                    SORT_LastName);
+//                            ImGui::TableSetupColumn("Grade", 0, 0.0f,
+//                                                    SORT_Grade);
+//                            ImGui::TableSetupColumn(
+//                                    "Number of Lates",
+//                                    ImGuiTableColumnFlags_PreferSortDescending,
+//                                    0.0f, SORT_NumLates);
+//                            ImGui::TableSetupColumn(
+//                                    "Address", ImGuiTableColumnFlags_NoSort, 0.0f);
+//
+//                            ImGui::TableHeadersRow();
+//
+//                            /**
+//                             *
+//                             * SORTING STUDENTS
+//                             *
+//                             *
+//                             */
+//
+//                            if (ImGuiTableSortSpecs *sortSpecs = ImGui::TableGetSortSpecs()) {
+//                                string x = active_tabs[n];
+//                                Course &course =db.getCourses()[active_tabs[n]];
+//                                sorterOfStudents.init(course, sortSpecs);
+////                                sortSpecs->SpecsDirty = false;
+////                                if (sortSpecs->SpecsDirty) {
+////                                    sorterOfStudents.init(course, sortSpecs);
+////                                    sortSpecs->SpecsDirty = false;
+////                                }
+//                            }
+//                            ImGui::TableNextRow();
+//                            for (auto student : sorterOfStudents.students) {
+//                                ImGui::TableNextColumn();
+//                                ImGui::Text(student->getStudentId().c_str());
+//                                ImGui::TableNextColumn();
+//                                ImGui::Text(student->getFirstName().c_str());
+//                                ImGui::TableNextColumn();
+//                                ImGui::Text(student->getLastName().c_str());
+//                                ImGui::TableNextColumn();
+//                                ImGui::Text(
+//                                        to_string(student->getGrade()).c_str());
+//                                ImGui::TableNextColumn();
+//                                ImGui::Text(
+//                                        to_string(student->getNumLates()).c_str());
+//                                ImGui::SameLine();
+//                                if (ImGui::Button(
+//                                        fmt::format("+##{}",
+//                                                    student->getStudentId())
+//                                                .c_str())) {
+//                                    student->addLate();
+//                                }
+//                                ImGui::TableNextColumn();
+//                                ImGui::Text(student->getAddress().c_str());
+//                            }
+//                            ImGui::TableNextColumn();
+//                            if (ImGui::Button("Add Student to Course?")) {
+//                                isAddingStudentToCourse = true;
+//                                ImGui::SetNextWindowSize(ImVec2(400, 200));
+//                                ImGui::SetNextWindowPos(center,
+//                                                        ImGuiCond_Appearing,
+//                                                        ImVec2(0.5f, 0.5f));
+//                            }
+//                            if (isAddingStudentToCourse)
+//                                addingStudentToCourse(active_tabs[n],
+//                                                      isAddingStudentToCourse);
+//
+//                            if (ImGui::Button("Create Student?")) {
+//                                isCreatingStudent = true;
+//                                ImGui::SetNextWindowSize(ImVec2(400, 200));
+//                                ImGui::SetNextWindowPos(center,
+//                                                        ImGuiCond_Appearing,
+//                                                        ImVec2(0.5f, 0.5f));
+//                            }
+//                            if (isCreatingStudent)
+//                                creatingStudent(isCreatingStudent);
+//                            ImGui::EndTable();
+//                        }
+//
+//                        ImGui::EndTabItem();
+//                    }
+//                    db.save();
+//                    // these if's control the opening and closing of new
+//                    // tabs
+//                    if (!open) {
+//                        active_tabs.erase(active_tabs.begin() + n);
+//                    } else
+//                        n++;
+//                }
+//                ImGui::EndTabBar();
+//            }
+//            ImGui::End();
+//        }
+//        else if (show_log_in_window) {
+//            static float f = 0.0f;
+//            static int counter = 0;
+//            ImGui::SetNextWindowSize(ImVec2(400, 200));
+//            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+//            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+//                                    ImVec2(0.5f, 0.5f));
+//            // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+//            // ImGuiWindowFlags_NoCollapse
+//            ImGui::Begin("Log in!", 0, ImGuiCond_FirstUseEver);
+//            ImGui::Text("Teacher ID");
+//            static char buf1[7] = "";
+//            string IDLabel;
+//            if (valid_id)
+//                IDLabel = "##a";
+//            else
+//                IDLabel = "INVALID ID";
+//            ImGui::InputText(
+//                    IDLabel.c_str(), buf1, 7,
+//                    ImGuiInputTextFlags_EnterReturnsTrue |
+//                    ImGuiInputTextFlags_CharsUppercase |
+//                    ImGuiInputTextFlags_CallbackCharFilter,
+//                    TextFilters::FilterTeacherIDInput);  // Display some text (you
+//            // can use a format strings
+//            // too)
+//            ImGui::Text("Password");
+//            static char password[64] = "";
+//            string PWLabel;
+//            if (valid_pw)
+//                PWLabel = "##b";
+//            else
+//                PWLabel = "NON-MATCHING PW";
+//            ImGui::InputText(PWLabel.c_str(), password, IM_ARRAYSIZE(password),
+//                             pwflags1);
+//            ImGui::SameLine();
+//            ImGui::Checkbox("Show Password", &showPW1);
+//            if (ImGui::Button("Sign In")) {
+//                valid_id = false;
+//                valid_pw = false;
+//                for (auto [employeeID, teacher] : db.getTeachers()) {
+//                    if (employeeID == buf1 and
+//                        teacher.getPassword() == password) {
+//                        logged_in_employee = buf1;
+//                        show_logged_in_window = true;
+//                        valid_id = true;
+//                        valid_pw = true;
+//                        for (char &c: buf1) c = '\0';
+//                        for (char &c: password) c = '\0';
+//                        break;
+//                    } else if (employeeID == buf1) {
+//                        valid_id = true;
+//                    }
+//                }
+//            }
+//            ImGui::SameLine();
+//            ImGui::Text("New Teacher?");
+//            ImGui::SameLine();
+//            if (ImGui::Button("Create Teacher ID")) {
+//                for (char &c: buf1) c = '\0';
+//                for (char &c: password) c = '\0';
+//                valid_id = true;
+//                valid_pw = true;
+//                showPW1 = false;
+//                show_log_in_window = false;
+//            }
+//            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+//                        1000.0f / io.Framerate, io.Framerate);
+//            ImGui::End();
+//        } else {
+//            ImGui::SetNextWindowSize(ImVec2(400, 200));
+//            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+//            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+//                                    ImVec2(0.5f, 0.5f));
+//            // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+//            // ImGuiWindowFlags_NoCollapse
+//            ImGui::Begin("Sign Up!", 0,
+//                         ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoResize);
+//            ImGui::Text("Teacher ID");
+//            static char id1[7] = "";
+//            string IDLabel;
+//            if (valid_id_sign_up)
+//                IDLabel = "##a";
+//            else
+//                IDLabel = "INVALID ID";
+//            ImGui::InputText(
+//                    IDLabel.c_str(), id1, 7,
+//                    ImGuiInputTextFlags_EnterReturnsTrue |
+//                    ImGuiInputTextFlags_CharsUppercase |
+//                    ImGuiInputTextFlags_CallbackCharFilter,
+//                    TextFilters::FilterTeacherIDInput);  // Display some text (you
+//            // can use a format strings
+//            // too)
+//            ImGui::NewLine();
+//
+//            ImGui::Text("First Name");
+//            static char fn1[64] = "";
+//            string FNLabel;
+//            if (valid_first_name_sign_up)
+//                FNLabel = "##b";
+//            else
+//                FNLabel = "REQUIRED";
+//            ImGui::InputText(
+//                    FNLabel.c_str(), fn1,
+//                    64);  // Display some text (you can use a format strings too)
+//            ImGui::NewLine();
+//
+//            ImGui::Text("Last Name");
+//            static char ln1[64] = "";
+//            string LNLabel;
+//            if (valid_last_name_sign_up)
+//                LNLabel = "##c";
+//            else
+//                LNLabel = "REQUIRED##a";
+//            ImGui::InputText(
+//                    LNLabel.c_str(), ln1,
+//                    64);  // Display some text (you can use a format strings too)
+//            ImGui::NewLine();
+//
+//            ImGui::Text("Address");
+//            static char address1[64] = "";
+//            string ALabel;
+//            if (valid_address_sign_up)
+//                ALabel = "##d";
+//            else
+//                ALabel = "REQUIRED##b";
+//            ImGui::InputText(
+//                    ALabel.c_str(), address1,
+//                    64);  // Display some text (you can use a format strings too)
+//            ImGui::NewLine();
+//
+//            ImGui::Text("Teachables");
+//            ImGui::SameLine();
+//            HelpMarker(
+//                    "Each course listed as teachables must follow valid course "
+//                    "code criterions and be separated by a space.");
+//            static char teachables1[64] = "";
+//            string TLabel;
+//            if (valid_teachables_sign_up)
+//                TLabel = "##e";
+//            else
+//                TLabel =
+//                        "ONE OR MORE TEACHABLES DOES NOT FOLLOW VALID FORMATTING";
+//            ImGui::InputText(
+//                    TLabel.c_str(), teachables1,
+//                    64);  // Display some text (you can use a format strings too)
+//            ImGui::NewLine();
+//
+//            ImGui::Text("Password");
+//            static char password2[64] = "";
+//            string PWLabel1, PWLabel2;
+//            if (valid_pw_sign_up) {
+//                PWLabel1 = "##f";
+//                PWLabel2 = "##g";
+//            } else {
+//                PWLabel1 = "NON-MATCHING OR UNFILLED PASSWORDS";
+//                PWLabel2 = "NON-MATCHING OR UNFILLED PASSWORDS##";
+//            }
+//            ImGui::InputText(PWLabel1.c_str(), password2,
+//                             IM_ARRAYSIZE(password2), pwflags2);
+//            ImGui::SameLine();
+//            ImGui::Checkbox("Show Password", &showPW2);
+//            ImGui::NewLine();
+//
+//            ImGui::Text("Confirm Password");
+//            static char password3[64] = "";
+//            ImGui::InputText(PWLabel2.c_str(), password3,
+//                             IM_ARRAYSIZE(password3), pwflags3);
+//            ImGui::SameLine();
+//            ImGui::Checkbox("Show Password##", &showPW3);
+//            ImGui::NewLine();
+//
+//            if (ImGui::Button("Sign Up")) {
+//                valid_id_sign_up = validateInputTeacherID(id1);
+//                valid_pw_sign_up = (strcmp(password2, password3) == 0 and
+//                                    (strcmp(password2, "") != 0 and
+//                                     strcmp(password3, "") != 0));
+//                valid_first_name_sign_up = strcmp(fn1, "") != 0;
+//                valid_last_name_sign_up = strcmp(ln1, "") != 0;
+//                valid_address_sign_up = strcmp(address1, "") != 0;
+//                valid_teachables_sign_up = true;
+//                string s = teachables1;
+//                std::string delimiter = " ";
+//                size_t pos = 0;
+//                std::string token;
+//                while ((pos = s.find(delimiter)) != std::string::npos) {
+//                    token = s.substr(0, pos);
+//                    if (!std::regex_match(token, course_match)) {
+//                        valid_teachables_sign_up = false;
+//                        break;
+//                    }
+//                    s.erase(0, pos + delimiter.length());
+//                }
+//
+//                if (!std::regex_match(s, course_match)) {
+//                    valid_teachables_sign_up = false;
+//                }
+//
+//                if (valid_id_sign_up and valid_pw_sign_up and
+//                    valid_first_name_sign_up and valid_last_name_sign_up and
+//                    valid_address_sign_up and valid_teachables_sign_up) {
+//                    db.addTeacher(Teacher{fn1, ln1, address1, teachables1, id1,
+//                                          password2});
+//                    db.save();
+//                    ImGui::OpenPopup("ID CREATION SUCCESSFUL!");
+//                }
+//            }
+//            bool account_creation_success_window = true;
+//            if (ImGui::BeginPopupModal("ID CREATION SUCCESSFUL!",
+//                                       &account_creation_success_window)) {
+//                ImGui::Text(
+//                        "YOUR ID HAS BEEN SUCCESSFULLY CREATED. \nLOG IN "
+//                        "THROUGH THE LOG IN WINDOW!");
+//                ImGui::EndPopup();
+//            }
+//            if (!account_creation_success_window){
+//                for (char &c: id1) c = '\0';
+//                for (char &c: fn1) c = '\0';
+//                for (char &c: ln1) c = '\0';
+//                for (char &c: address1) c = '\0';
+//                for (char &c: teachables1) c = '\0';
+//                for (char &c: password2) c = '\0';
+//                for (char &c: password3) c = '\0';
+//                valid_id_sign_up = true;
+//                valid_pw_sign_up = true;
+//                valid_first_name_sign_up = true;
+//                valid_last_name_sign_up = true;
+//                valid_address_sign_up = true;
+//                valid_teachables_sign_up = true;
+//                showPW2 = false;
+//                showPW3 = false;
+//                show_log_in_window = true;
+//            }
+//
+//            if (ImGui::Button("Return To Log In Window")) {
+//                for (char &c: id1) c = '\0';
+//                for (char &c: fn1) c = '\0';
+//                for (char &c: ln1) c = '\0';
+//                for (char &c: address1) c = '\0';
+//                for (char &c: teachables1) c = '\0';
+//                for (char &c: password2) c = '\0';
+//                for (char &c: password3) c = '\0';
+//                valid_id_sign_up = true;
+//                valid_pw_sign_up = true;
+//                valid_first_name_sign_up = true;
+//                valid_last_name_sign_up = true;
+//                valid_address_sign_up = true;
+//                valid_teachables_sign_up = true;
+//                showPW2 = false;
+//                showPW3 = false;
+//                show_log_in_window = true;
+//            }
+//
+//            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+//                        1000.0f / io.Framerate, io.Framerate);
+//            ImGui::End();
+//        }
 
-        // Rendering
+        // Renders panels
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -212,3 +1182,286 @@ int main(int, char**)
 
     return 0;
 }
+
+/*************************/
+/********Functions********/
+/*************************/
+
+// Simple helper function to load an image into a OpenGL texture with common
+// settings
+bool LoadTextureFromFile(const char *filename, GLuint *out_texture,
+                         int *out_width, int *out_height) {
+    // Load from file
+    int image_width = 0;
+    int image_height = 0;
+    unsigned char *image_data =
+            stbi_load(filename, &image_width, &image_height, NULL, 4);
+    if (image_data == NULL) return false;
+
+    // Create a OpenGL texture identifier
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                    GL_CLAMP_TO_EDGE);  // This is required on WebGL for non
+    // power-of-two textures
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                    GL_CLAMP_TO_EDGE);  // Same
+
+    // Upload pixels into texture
+#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    stbi_image_free(image_data);
+
+    *out_texture = image_texture;
+    *out_width = image_width;
+    *out_height = image_height;
+
+    return true;
+}
+
+static void glfw_error_callback(int error, const char *description) {
+    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+}
+
+//Helper function to generate a help marker
+static void HelpMarker(const char *desc) {
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) &&
+        ImGui::BeginTooltip()) {
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
+//Open debug log window
+//void log() {
+//    ImGui::Begin("Log");
+//    ImGui::Text(db.log(ImGui::Button("Update Logging?")).c_str());
+//    ImGui::End();
+//}
+
+//Open add student to course pop-up modal
+//void addingStudentToCourse(string courseCode, bool &isAddingStudent) {
+//    std::unordered_set<Student *> students =
+//            db.getCourses()[courseCode].getStudents();
+//    ImGui::OpenPopup("Adding Student to Course");
+//    if (ImGui::BeginPopupModal("Adding Student to Course",
+//                               &isAddingStudent)) {
+//        ImGui::Text("FILTER BY: ");
+//        ImGui::SameLine();
+//        static char buf1[64] = "";
+//        ImGui::InputText("##a", buf1, IM_ARRAYSIZE(buf1),
+//                         ImGuiInputTextFlags_EnterReturnsTrue);
+//        vector<string> items{};
+//        // filter/include students into list
+//        std::regex student_list_match{fmt::format(R"(\b\w*{}\w*\b)", buf1),
+//                                      std::regex_constants::icase};
+//        for (auto [studentID, student] : db.getStudents()) {
+//            bool isInCourse = false;
+//            for (Student *student : students) {
+//                if (student->getStudentId() == studentID) {
+//                    isInCourse = true;
+//                    break;
+//                }
+//            }
+//            if (std::regex_search(student.toString(), student_list_match) and
+//                !isInCourse)
+//                items.push_back(studentID);
+//        }
+//        static int item_current_idx =
+//                0;  // Here we store our selection data as an index.
+//        // Custom size: use all width, 5 items tall
+//        if (!items.empty())
+//            ImGui::Text("UNADDED STUDENTS:");
+//        else
+//            ImGui::Text("ALL AVAILABLE STUDENTS HAVE ALREADY BEEN ADDED.");
+//        if (ImGui::BeginListBox(
+//                "##listbox",
+//                ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
+//            for (int n = 0; n < items.size(); n++) {
+//                const bool is_selected = (item_current_idx == n);
+//                if (ImGui::Selectable(items[n].c_str(), is_selected))
+//                    item_current_idx = n;
+//                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) &&
+//                    ImGui::BeginTooltip()) {
+//                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+//                    ImGui::TextUnformatted(
+//                            db.getStudents()[items[n]].toString().c_str());
+//                    ImGui::PopTextWrapPos();
+//                    ImGui::EndTooltip();
+//                }
+//
+//                // Set the initial focus when opening the combo (scrolling +
+//                // keyboard navigation focus)
+//                if (is_selected) ImGui::SetItemDefaultFocus();
+//            }
+//            ImGui::EndListBox();
+//        }
+//        if (!items.empty()) {
+//            if (ImGui::Button("ADD")) {
+//                Student &studentBeingAdded =
+//                        db.getStudents().at(string{items[item_current_idx]});
+//
+//                db.getCourses()[courseCode].addStudentToClass(
+//                        &studentBeingAdded);
+//                for (char &c: buf1) c = '\0';
+//                isAddingStudent = false;
+//            }
+//        } else {
+//            if (ImGui::Button("CLOSE")){
+//                for (char &c: buf1) c = '\0';
+//                isAddingStudent = false;
+//            }
+//        }
+//        ImGui::EndPopup();
+//    }
+//}
+
+//Open create student pop-up modal
+//void creatingStudent(bool &isCreatingStudent) {
+//    ImGui::OpenPopup("Creating Student");
+//    if (ImGui::BeginPopupModal("Creating Student", &isCreatingStudent)) {
+//        // Student ID
+//        ImGui::Text("Student ID");
+//        static char id1[11] = "";
+//        string IDLabel;
+//        if (valid_id_create)
+//            IDLabel = "##a";
+//        else
+//            IDLabel = "INVALID ID";
+//        ImGui::InputText(
+//                IDLabel.c_str(), id1, 11,
+//                ImGuiInputTextFlags_EnterReturnsTrue |
+//                ImGuiInputTextFlags_CharsUppercase |
+//                ImGuiInputTextFlags_CallbackCharFilter,
+//                TextFilters::FilterStudentIDInput);  // Display some text (you can
+//        // use a format strings too)
+//        ImGui::NewLine();
+//
+//        // First name
+//        ImGui::Text("First Name");
+//        static char fn1[64] = "";
+//        string FNLabel;
+//        if (valid_first_name_create)
+//            FNLabel = "##b";
+//        else
+//            FNLabel = "REQUIRED";
+//        ImGui::InputText(
+//                FNLabel.c_str(), fn1,
+//                64);  // Display some text (you can use a format strings too)
+//        ImGui::NewLine();
+//
+//        // Last name
+//        ImGui::Text("Last Name");
+//        static char ln1[64] = "";
+//        string LNLabel;
+//        if (valid_last_name_create)
+//            LNLabel = "##c";
+//        else
+//            LNLabel = "REQUIRED##a";
+//        ImGui::InputText(
+//                LNLabel.c_str(), ln1,
+//                64);  // Display some text (you can use a format strings too)
+//        ImGui::NewLine();
+//
+//        // Address
+//        ImGui::Text("Address");
+//        static char address1[64] = "";
+//        string ALabel;
+//        if (valid_address_create)
+//            ALabel = "##d";
+//        else
+//            ALabel = "REQUIRED##b";
+//        ImGui::InputText(
+//                ALabel.c_str(), address1,
+//                64);  // Display some text (you can use a format strings too)
+//        ImGui::NewLine();
+//
+//        // Grade
+//        ImGui::Text("Grade");
+//        static char grade[64] = "";
+//        string GLabel;
+//        if (valid_grade_create)
+//            GLabel = "##e";
+//        else
+//            GLabel = "REQUIRED##c";
+//        ImGui::InputText(
+//                GLabel.c_str(), grade, 64, ImGuiInputTextFlags_CallbackCharFilter,
+//                TextFilters::FilterGradeInput);  // Display some text (you can use a
+//        // format strings too)
+//        ImGui::NewLine();
+//
+//        if (!isCreatingStudent){
+//            for (char &c: id1) c = '\0';
+//            for (char &c: fn1) c = '\0';
+//            for (char &c: ln1) c = '\0';
+//            for (char &c: address1) c = '\0';
+//            for (char &c: grade) c = '\0';
+//            valid_id_create = true;
+//            valid_first_name_create = true;
+//            valid_last_name_create = true;
+//            valid_address_create = true;
+//            valid_grade_create = true;
+//        }
+//
+//        if (ImGui::Button("Create")) {
+//            valid_id_create = validateInputStudentID(id1);
+//            valid_first_name_create = strcmp(fn1, "") != 0;
+//            valid_last_name_create = strcmp(ln1, "") != 0;
+//            valid_address_create = strcmp(address1, "") != 0;
+//            valid_grade_create = strcmp(grade, "") != 0;
+//
+//            if (valid_id_create and valid_first_name_create and
+//                valid_last_name_create and valid_address_create and
+//                valid_grade_create) {
+//                db.addStudent(
+//                        Student{fn1, ln1, address1, std::stoi(grade), id1});
+//                db.save();
+//                ImGui::OpenPopup("STUDENT CREATION SUCCESSFUL!");
+//                for (char &c: id1) c = '\0';
+//                for (char &c: fn1) c = '\0';
+//                for (char &c: ln1) c = '\0';
+//                for (char &c: address1) c = '\0';
+//                for (char &c: grade) c = '\0';
+//                isCreatingStudent = false;
+//            }
+//        }
+//        bool account_creation_success_window = true;
+//        if (ImGui::BeginPopupModal("STUDENT CREATION SUCCESSFUL!",
+//                                   &account_creation_success_window)) {
+//            ImGui::Text(
+//                    "STUDENT HAS BEEN SUCCESSFULLY CREATED. \n ADD STUDENT TO "
+//                    "COURSE USING THE \"ADDING STUDENT TO COURSE?\" BUTTON");
+//            ImGui::EndPopup();
+//        }
+//        ImGui::EndPopup();
+//    }
+//}
+
+//Function to validate if a string is a valid teacher ID
+//bool validateInputTeacherID(string in) {
+//    if (!std::regex_match(in, teacher_match)) return false;
+//    return db.getTeachers().find(in) == db.getTeachers().end();
+//}
+
+//Function to validate if a string is a valid passenger ID
+bool validateInputPassengerID(string in) {
+    if (!std::regex_match(in, teacher_match)) return false;
+    return db.getPassengers().find(in) == db.getPassengers().end();
+}
+
+//Function to validate if a string is a valid student ID
+//bool validateInputStudentID(string in) {
+//    if (!std::regex_match(in, student_match)) return false;
+//    return db.getStudents().find(in) == db.getStudents().end();
+//}

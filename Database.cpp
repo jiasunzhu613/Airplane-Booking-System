@@ -37,7 +37,9 @@ void Database::load(FlightDB* inMemoryDB){
         int d = stoi(time.substr(8, 10));
         int h = stoi(time.substr(11, 13));
         int min = stoi(time.substr(14, 16));
-        inMemoryDB->flights[id] = Flight{from, to, id, y, m, d, h, min};
+        cout << "work1" << endl;
+        inMemoryDB->flights[id] = Flight{from, to, id, y, m, d, h, min, inMemoryDB->airports[to].getTimesToAirport()[from]};
+        cout << "work2" << endl;
         for (int i = 0; i < flightJSON["Passengers"].size(); i++){
             inMemoryDB->flights[id].getPassengers()[i] = &inMemoryDB->passengers[flightJSON["Passengers"][i].asString()];
         }
@@ -52,7 +54,8 @@ void Database::load(FlightDB* inMemoryDB){
         string ln = passengerJSON["Last Name"].asString();
         string address = passengerJSON["Address"].asString();
         string phone = passengerJSON["Phone Number"].asString();
-        inMemoryDB->passengers[id] = Passenger{fn, ln, address, phone, id};
+        string pw = passengerJSON["Password"].asString();
+        inMemoryDB->passengers[id] = Passenger{fn, ln, address, phone, id, pw};
     }
 }
 
@@ -74,6 +77,7 @@ void Database::save(FlightDB* inMemoryDB){
         passengerJSON["Last Name"] = passenger.getLastName();
         passengerJSON["Address"] = passenger.getAddress();
         passengerJSON["Phone Number"] = passenger.getPhoneNumber();
+        passengerJSON["Password"] = passenger.getPassword();
     }
 
     cout << inMemoryDB->flights.size() << endl;
@@ -93,6 +97,7 @@ void Database::save(FlightDB* inMemoryDB){
             flightJSON["Seats Taken"].append(b);
         }
     }
+    cout << "ended" << endl;
     db = ndb;
     cout << db << endl;
     out.open(FILE_LOCATION);

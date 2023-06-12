@@ -41,19 +41,22 @@ private:
 
 public:
     Flight();
-    Flight(string f, string t, string id, int y, int m, int d, int h, int min);
+    Flight(string f, string t, string id, int y, int m, int d, int h, int min, int tt);
     array<Passenger*, NUM_OF_PASSENGERS>& getPassengers();
     string getFrom() const;
     string getTo() const;
     string getFlightID() const;
     array<bool, NUM_OF_PASSENGERS>& getSeatTaken();
+    string getSeatsNotTaken();
     string getDepartureTime() const;
     string getArrivalTime() const;
     void setFrom(string f);
     void setTo(string t);
     void setFlightID(string id);
-    void setTime(int y, int m, int d, int h, int min);
+    void setTime(int y, int m, int d, int h, int min, int t);
     void buySeat(Passenger* passenger, int ind);
+    string toString();
+    string getDetails();
 };
 
 

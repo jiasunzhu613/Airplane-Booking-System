@@ -6,7 +6,7 @@
 
 Flight::Flight(){}
 
-Flight::Flight(string f, string t, string id, int y, int m, int d, int h, int min) {
+Flight::Flight(string f, string t, string id, int y, int m, int d, int h, int min, int tt) {
     passengers = array<Passenger*, NUM_OF_PASSENGERS>{}; // expressed as a json::array of passenger id's
     passengers.fill(new Passenger{});
     seatTaken = array<bool, NUM_OF_PASSENGERS>{}; // expressed as a Json::array
@@ -20,7 +20,7 @@ Flight::Flight(string f, string t, string id, int y, int m, int d, int h, int mi
 
     // below: expressed as the default string conversion
     time[0] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min};
-//    time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + flightDB.getAirports()[to].getTimesToAirport()[from]};
+    time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + tt};
 }
 
 array<Passenger*, NUM_OF_PASSENGERS>& Flight::getPassengers() {return passengers;}
@@ -32,6 +32,15 @@ string Flight::getTo() const {return to;}
 string Flight::getFlightID() const {return flightID;}
 
 array<bool, NUM_OF_PASSENGERS>& Flight::getSeatTaken() {return seatTaken;}
+
+string Flight::getSeatsNotTaken() {
+    stringstream ss;
+    for (int i = 0; i < NUM_OF_PASSENGERS; i++){
+        if (!seatTaken[i]){
+            ss << i << " ";
+        }
+    }
+}
 
 string Flight::getDepartureTime() const {
     stringstream ss;
@@ -51,12 +60,34 @@ void Flight::setTo(string t) {to = t;}
 
 void Flight::setFlightID(std::string id) {flightID = id;}
 
-void Flight::setTime(int y, int m, int d, int h, int min) {
+void Flight::setTime(int y, int m, int d, int h, int min, int t) {
     time[0] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min};
-//    time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + flightDB.getAirports()[to].getTimesToAirport()[from]};
+    time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + t};
 }
 
 void Flight::buySeat(Passenger* passenger, int ind) {
     passengers[ind] = passenger;
     seatTaken[ind] = true;
+}
+
+string Flight::toString() {
+    stringstream ss;
+    ss << flightID;
+    return ss.str();
+}
+
+string Flight::getDetails() {
+    stringstream ss;
+    ss << "To: " << to << std::endl;
+    ss << "From: " << from << std::endl;
+    ss << "Flight ID: " << flightID << std::endl;
+    ss << "Departure: " << time[0] << std::endl;
+    ss << "Arrival: " << time[1] << std::endl;
+    ss << "Seats Available: ";
+    for (int i = 0; i < NUM_OF_PASSENGERS; i++){
+        if (!seatTaken[i]){
+            ss << i << " ";
+        }
+    }
+    return ss.str();
 }

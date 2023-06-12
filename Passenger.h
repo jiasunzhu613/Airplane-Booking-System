@@ -12,12 +12,15 @@
 class Passenger : public Person{
 private:
     string passengerID;
+    string password;
 public:
     Passenger();
-    Passenger(string, string, string);//fn, ln, id
-    Passenger(string, string, string, string, string);//fn, ln, add, phone, id
+    Passenger(string, string, string, string);//fn, ln, id, pw
+    Passenger(string, string, string, string, string, string);//fn, ln, add, phone, id, pw
     string getPassengerID() const;
+    string getPassword() const;
     void setPassengerID(string);
+    void setPassword(string p);
 };
 
 
