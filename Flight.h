@@ -1,6 +1,8 @@
 //
 // Created by Jonathan Zhu on 2023-06-06.
 //
+#pragma once
+
 #include <vector>
 #include <array>
 #include <utility>
@@ -26,7 +28,7 @@ using namespace date;
  * - time on json is measured in minutes
  */
 const static int NUM_OF_PASSENGERS = 11;
-static FlightDB flightDB{}; // TODO: review later if we even need this variable
+//static FlightDB flightDB{}; // TODO: review later if we even need this variable
 
 class Flight {
 private:

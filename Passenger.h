@@ -1,6 +1,8 @@
 //
 // Created by Jonathan Zhu on 2023-06-06.
 //
+#pragma once
+
 #include "Person.h"
 
 #ifndef AIRPLANE_BOOKING_SYSTEM_PASSENGER_H

@@ -14,7 +14,7 @@ Flight::Flight(string f, string t, int y, int m, int d, int h, int min) {
 
     // below: expressed as the default string conversion
     time[0] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min};
-    time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + flightDB.getAirports()[to].getTimesToAirport()[from]};
+//    time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + flightDB.getAirports()[to].getTimesToAirport()[from]};
 }
 
 array<Passenger *, NUM_OF_PASSENGERS>& Flight::getPassengers() {return passengers;}
@@ -42,7 +42,7 @@ void Flight::setTo(string t) {to = t;}
 
 void Flight::setTime(int y, int m, int d, int h, int min) {
     time[0] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min};
-    time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + flightDB.getAirports()[to].getTimesToAirport()[from]};
+//    time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + flightDB.getAirports()[to].getTimesToAirport()[from]};
 }
 
 void Flight::buySeat(Passenger passenger, int ind) {

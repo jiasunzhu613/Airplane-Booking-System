@@ -1,6 +1,8 @@
 //
 // Created by Jonathan Zhu on 2023-06-06.
 //
+#pragma once
+
 #include <string>
 #include <iostream>
 #include <json/json.h>
@@ -17,7 +19,6 @@ using std::string, std::cout, std::endl, std::ifstream, std::ofstream;
 const static string FILE_LOCATION = "../jsonFiles/flightsDB.json";
 
 class FlightDB;
-class FlightTimesDB;
 class Database {
 private:
     ifstream in;
