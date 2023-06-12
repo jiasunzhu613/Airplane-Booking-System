@@ -11,6 +11,7 @@ class Attendent : public Person{
 private:
     string attendentID;
 public:
+    Attendent();
     Attendent(string, string, string);//fn, ln, id
     Attendent(string, string, string, string, string);//fn, ln, add, phone, id
     string getAttendentID() const;

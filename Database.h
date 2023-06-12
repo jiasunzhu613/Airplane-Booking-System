@@ -8,34 +8,27 @@
 #include <json/writer.h>
 #include <fstream>
 #include <sstream>
-#include "FlightTimesDB.h"
-#include "Airport.h"
-#include "Flight.h"
-#include "Passenger.h"
-#include "Attendent.h"
 
 using std::string, std::cout, std::endl, std::ifstream, std::ofstream;
 
 #ifndef AIRPLANE_BOOKING_SYSTEM_DATABASE_H
 #define AIRPLANE_BOOKING_SYSTEM_DATABASE_H
 
-const static string FLIGHTS_FILE_LOCATION = "../flights.json";
+const static string FILE_LOCATION = "../jsonFiles/flightsDB.json";
 
+class FlightDB;
 class FlightTimesDB;
-class Airport;
-class Flight;
-class Passenger;
-class Attendent;
 class Database {
 private:
     ifstream in;
     ofstream out;
-    Json::Value flights_db;
+    Json::Value db;
     Json::Reader jsonReader;
 public:
     Database();
-    void load(FlightTimesDB*);
-    void save(FlightTimesDB*);
+
+    void load(FlightDB*);
+    void save(FlightDB*);
 };
 
 

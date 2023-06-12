@@ -17,6 +17,7 @@ private:
     string phone;
 public:
     //Constructors
+    Person();
     Person(string, string); // first and last
     Person(string, string, string, string); // all inputs
 

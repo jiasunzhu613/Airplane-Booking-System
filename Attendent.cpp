@@ -3,6 +3,8 @@
 //
 
 #include "Attendent.h"
+
+Attendent::Attendent() {}
 Attendent::Attendent(string fn, string ln, string id): Person(fn, ln), attendentID{id} {}
 Attendent::Attendent(string fn, string ln, string a, string p, string id): Person(fn, ln, a, p), attendentID{id} {}
 

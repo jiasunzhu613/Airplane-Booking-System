@@ -23,8 +23,15 @@ private:
 public:
     FlightTimesDB();
 
-    friend void Database::load(FlightTimesDB*);
-    friend void Database::save(FlightTimesDB*);
+    unordered_map<string, Airport>& getAirports();
+
+    void addAirport(Airport airport);
+
+    void reset();
+    void save();
+
+    friend void Database::loadFlightTimes(FlightTimesDB*);
+    friend void Database::saveFlightTimes(FlightTimesDB*);
 };
 
 

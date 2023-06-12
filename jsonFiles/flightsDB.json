@@ -1,0 +1,69 @@
+{
+  "Passengers": {
+
+  },
+  "Flights":{
+    "YYZ": {
+      "From" : "YOW",
+      "Passengers" :
+      [
+
+      ],
+      "Seats Taken":
+      [
+
+      ],
+      "Departure":""
+    }
+  },
+  "Airports": {
+    "YYZ":
+    {
+      "Name" : "Toronto Pearson International Airport",
+      "Distances" :
+      {
+        "YOW" : 87
+      }
+    },
+    "YTZ":
+    {
+      "Name" : "Billy Bishop Toronto City Airport",
+      "Distances" :
+      {
+        "YOW" : 88
+      }
+    },
+    "YHM":
+    {
+      "Name" : "John C. Munro Hamilton International Airport",
+      "Distances" :
+      {
+        "YOW" : 150
+      }
+    },
+    "YXU":
+    {
+      "Name" : "London International Airport",
+      "Distances" :
+      {
+        "YOW" : 157
+      }
+    },
+    "YGK":
+    {
+      "Name" : "Kingston Norman Rogers Airport",
+      "Distances" :
+      {
+        "YOW" : 121
+      }
+    },
+    "YCM":
+    {
+      "Name" : "Niagara District Airport",
+      "Distances" :
+      {
+        "YOW" : 185
+      }
+    }
+  }
+}

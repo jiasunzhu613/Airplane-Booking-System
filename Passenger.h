@@ -11,6 +11,7 @@ class Passenger : public Person{
 private:
     string passengerID;
 public:
+    Passenger();
     Passenger(string, string, string);//fn, ln, id
     Passenger(string, string, string, string, string);//fn, ln, add, phone, id
     string getPassengerID() const;

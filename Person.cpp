@@ -4,6 +4,7 @@
 
 #include "Person.h"
 
+Person::Person() {}
 Person::Person(string fn, string ln): firstName{fn}, lastName{ln}{}
 Person::Person(string fn, string ln, string a, string p): firstName{fn}, lastName{ln}, address{a}, phone{p}{}
 

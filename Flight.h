@@ -5,11 +5,13 @@
 #include <array>
 #include <utility>
 #include <chrono>
+#include <sstream>
 #include "date/date.h"
 #include "Passenger.h"
 #include "Airport.h"
+#include "FlightTimesDB.h"
 
-using std::vector, std::array, std::pair;
+using std::vector, std::array, std::pair, std::stringstream;
 using namespace std::chrono;
 using namespace date;
 
@@ -24,23 +26,26 @@ using namespace date;
  * - time on json is measured in minutes
  */
 const static int NUM_OF_PASSENGERS = 11;
+static FlightTimesDB flightTimesDB{};
 
 class Flight {
 private:
     array<Passenger*, NUM_OF_PASSENGERS> passengers;
     array<bool, NUM_OF_PASSENGERS> seatTaken;
-    Airport* from;
-    Airport* to;
+    string from;
+    string to;
     array<system_clock::time_point, 2> time;
 
 public:
-    Flight(Airport* f, Airport* t, int y, int m, int d, int h, int min);
-    array<Passenger*, NUM_OF_PASSENGERS> getPassengers() const;
-    Airport* getFrom() const;
-    Airport* getTo() const;
-    array<system_clock::time_point, 2> getTime() const;
-    void setFrom(Airport* f);
-    void setTo(Airport* t);
+    Flight(string f, string t, int y, int m, int d, int h, int min);
+    array<Passenger*, NUM_OF_PASSENGERS>& getPassengers();
+    string getFrom() const;
+    string getTo() const;
+    array<bool, NUM_OF_PASSENGERS>& getSeatTaken();
+    string getDepartureTime() const; // TODO: change to string return type maybe
+    string getArrivalTime() const; // TODO: change to string return type maybe
+    void setFrom(string f);
+    void setTo(string t);
     void setTime(int y, int m, int d, int h, int min);
     void buySeat(Passenger passenger, int ind);
 };

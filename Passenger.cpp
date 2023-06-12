@@ -3,6 +3,7 @@
 //
 
 #include "Passenger.h"
+Passenger::Passenger() {}
 Passenger::Passenger(string fn, string ln, string id): Person(fn, ln), passengerID{id} {}
 Passenger::Passenger(string fn, string ln, string a, string p, string id): Person(fn, ln, a, p), passengerID{id} {}
 
