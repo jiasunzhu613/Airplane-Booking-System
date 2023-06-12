@@ -1,69 +1,76 @@
 {
-  "Passengers": {
-
-  },
-  "Flights":{
-    "YYZ": {
-      "From" : "YOW",
-      "Passengers" :
-      [
-
-      ],
-      "Seats Taken":
-      [
-
-      ],
-      "Departure":""
-    }
-  },
-  "Airports": {
-    "YYZ":
-    {
-      "Name" : "Toronto Pearson International Airport",
-      "Distances" :
-      {
-        "YOW" : 87
-      }
-    },
-    "YTZ":
-    {
-      "Name" : "Billy Bishop Toronto City Airport",
-      "Distances" :
-      {
-        "YOW" : 88
-      }
-    },
-    "YHM":
-    {
-      "Name" : "John C. Munro Hamilton International Airport",
-      "Distances" :
-      {
-        "YOW" : 150
-      }
-    },
-    "YXU":
-    {
-      "Name" : "London International Airport",
-      "Distances" :
-      {
-        "YOW" : 157
-      }
-    },
-    "YGK":
-    {
-      "Name" : "Kingston Norman Rogers Airport",
-      "Distances" :
-      {
-        "YOW" : 121
-      }
-    },
-    "YCM":
-    {
-      "Name" : "Niagara District Airport",
-      "Distances" :
-      {
-        "YOW" : 185
-      }
-    }
-  }
+	"Airports" : 
+	{
+		"MOM" : 
+		{
+			"Distances" : null,
+			"Name" : "YOUR MOM INTERNATIONAL AIRPORT"
+		}
+	},
+	"Flights" : 
+	{
+		"some id" : 
+		{
+			"Departure" : "2014-12-04 10:30:00.000000",
+			"From" : "a",
+			"Passengers" : 
+			[
+				"aa",
+				"aa",
+				"a",
+				"a",
+				"invalid id",
+				"invalid id",
+				"invalid id",
+				"invalid id",
+				"invalid id",
+				"invalid id"
+			],
+			"Seats Taken" : 
+			[
+				true,
+				true,
+				true,
+				true,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false
+			],
+			"To" : "b"
+		}
+	},
+	"Passengers" : 
+	{
+		"a" : 
+		{
+			"Address" : "123 Sesame Street",
+			"First Name" : "Jon",
+			"Last Name" : "Zhu",
+			"Phone Number" : "your mom"
+		},
+		"aa" : 
+		{
+			"Address" : "123 Sesame Street",
+			"First Name" : "a",
+			"Last Name" : "b",
+			"Phone Number" : "your mom"
+		},
+		"invalid id" : 
+		{
+			"Address" : "",
+			"First Name" : "",
+			"Last Name" : "",
+			"Phone Number" : ""
+		},
+		"your dad" : 
+		{
+			"Address" : "123 Sesame Street",
+			"First Name" : "Jon",
+			"Last Name" : "Zhu",
+			"Phone Number" : "your mom"
+		}
+	}
 }

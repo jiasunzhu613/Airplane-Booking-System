@@ -11,7 +11,7 @@
 #include "date/date.h"
 #include "Passenger.h"
 #include "Airport.h"
-#include "FlightDB.h"
+//#include "FlightDB.h"
 
 using std::vector, std::array, std::pair, std::stringstream;
 using namespace std::chrono;
@@ -27,7 +27,7 @@ using namespace date;
  * - all start location is ottawa
  * - time on json is measured in minutes
  */
-const static int NUM_OF_PASSENGERS = 11;
+const static int NUM_OF_PASSENGERS = 10;
 //static FlightDB flightDB{}; // TODO: review later if we even need this variable
 
 class Flight {
@@ -36,20 +36,24 @@ private:
     array<bool, NUM_OF_PASSENGERS> seatTaken;
     string from;
     string to;
+    string flightID;
     array<system_clock::time_point, 2> time;
 
 public:
-    Flight(string f, string t, int y, int m, int d, int h, int min);
+    Flight();
+    Flight(string f, string t, string id, int y, int m, int d, int h, int min);
     array<Passenger*, NUM_OF_PASSENGERS>& getPassengers();
     string getFrom() const;
     string getTo() const;
+    string getFlightID() const;
     array<bool, NUM_OF_PASSENGERS>& getSeatTaken();
     string getDepartureTime() const;
     string getArrivalTime() const;
     void setFrom(string f);
     void setTo(string t);
+    void setFlightID(string id);
     void setTime(int y, int m, int d, int h, int min);
-    void buySeat(Passenger passenger, int ind);
+    void buySeat(Passenger* passenger, int ind);
 };
 
 

@@ -7,14 +7,14 @@ set(CMAKE_CXX_STANDARD 20)
 include(CTest)
 enable_testing()
 
-#set(PRJ_HEADERS Person.h Passenger.h Attendent.h Flight.h Airport.h)
-#set(PRJ_SOURCES Person.cpp Passenger.cpp Attendent.cpp Flight.cpp Airport.cpp)
-#set(PRJ_MAIN main.cpp)
-#add_executable(${PROJECT_NAME} ${PRJ_HEADERS} ${PRJ_SOURCES} ${PRJ_MAIN})
+set(PRJ_HEADERS Person.h Passenger.h Attendent.h Flight.h Airport.h Database.h FlightDB.h)
+set(PRJ_SOURCES Person.cpp Passenger.cpp Attendent.cpp Flight.cpp Airport.cpp Database.cpp FlightDB.cpp)
+set(PRJ_MAIN test.cpp)
+add_executable(${PROJECT_NAME} ${PRJ_HEADERS} ${PRJ_SOURCES} ${PRJ_MAIN})
 
 #set(PRJ_MAIN jsonTester.cpp)
-set(PRJ_MAIN test.cpp)
-add_executable(${PROJECT_NAME} ${PRJ_MAIN})
+#set(PRJ_MAIN test.cpp)
+#add_executable(${PROJECT_NAME} ${PRJ_MAIN})
 
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

@@ -18,13 +18,13 @@ using std::vector, std::unordered_map;
 class FlightDB {
 private:
     //TODO: either vector or unordered_map (dont know what to put as key if use unordered_map)
-    vector<Flight> flights;
+    unordered_map<string, Flight> flights;
     unordered_map<string, Passenger> passengers;
     unordered_map<string, Airport> airports;
     Database db;
 public:
     FlightDB();
-    vector<Flight>& getFlights();
+    unordered_map<string, Flight> & getFlights();
     unordered_map<string, Passenger>& getPassengers();
     unordered_map<string, Airport>& getAirports();
 

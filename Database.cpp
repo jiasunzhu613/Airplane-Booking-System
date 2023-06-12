@@ -22,9 +22,10 @@ void Database::load(FlightDB* inMemoryDB){
         }
     }
 
-    for (const string to : db["Flights"].getMemberNames()){
-        Json::Value& flightJSON = db["Flights"][to];
+    for (const string id : db["Flights"].getMemberNames()){
+        Json::Value& flightJSON = db["Flights"][id];
         string from = flightJSON["From"].asString();
+        string to = flightJSON["To"].asString();
         //reference time format: 2022-03-12 05:45:00
         //2022-03-12 05:45:00
         //0123456789012345678
@@ -36,12 +37,12 @@ void Database::load(FlightDB* inMemoryDB){
         int d = stoi(time.substr(8, 10));
         int h = stoi(time.substr(11, 13));
         int min = stoi(time.substr(14, 16));
-        inMemoryDB->flights.push_back(Flight{from, to, y, m, d, h, min});
+        inMemoryDB->flights[id] = Flight{from, to, id, y, m, d, h, min};
         for (int i = 0; i < flightJSON["Passengers"].size(); i++){
-            inMemoryDB->flights[-1].getPassengers()[i] = &inMemoryDB->passengers[flightJSON["Passengers"][i].asString()];
+            inMemoryDB->flights[id].getPassengers()[i] = &inMemoryDB->passengers[flightJSON["Passengers"][i].asString()];
         }
         for (int i = 0; i < flightJSON["Seats Taken"].size(); i++){
-            inMemoryDB->flights[-1].getSeatTaken()[i] = flightJSON["Seats Taken"][i].asBool();
+            inMemoryDB->flights[id].getSeatTaken()[i] = flightJSON["Seats Taken"][i].asBool();
         }
         //then do seats and passengers, order is wtv
     }
@@ -75,14 +76,17 @@ void Database::save(FlightDB* inMemoryDB){
         passengerJSON["Phone Number"] = passenger.getPhoneNumber();
     }
 
-    for (auto flight : inMemoryDB->flights){
-        Json::Value& flightJSON = ndb["Flights"][flight.getTo()];
+    cout << inMemoryDB->flights.size() << endl;
+    for (auto[id, flight] : inMemoryDB->flights){
+        cout << "ran number rof times" << endl;
+        Json::Value& flightJSON = ndb["Flights"][flight.getFlightID()];
         flightJSON["From"] = flight.getFrom();
+        flightJSON["To"] = flight.getTo();
         flightJSON["Departure"] = flight.getDepartureTime();
         flightJSON["Passengers"] = Json::arrayValue;
         for (auto passenger : flight.getPassengers()){
-            string id = passenger->getPassengerID();
-            flightJSON["Passengers"].append(id);
+            cout << passenger->getPassengerID() << endl;
+            flightJSON["Passengers"].append(passenger->getPassengerID());
         }
         flightJSON["Seats Taken"] = Json::arrayValue;
         for (bool b : flight.getSeatTaken()){

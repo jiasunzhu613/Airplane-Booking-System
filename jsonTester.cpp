@@ -15,6 +15,7 @@
 
 #include <chrono>
 #include "date/date.h"
+#include "FlightDB.h"
 
 
 using namespace std;
@@ -97,6 +98,8 @@ bool validateCourseCode(string courseCode){
 }
 
 int main(){
+    FlightDB db = FlightDB{};
+    db.reset();
     using namespace date;
     using namespace std::chrono;
     std::cout << system_clock::now() << " UTC\n";
