@@ -90,6 +90,7 @@ void Database::save(FlightDB* inMemoryDB){
         }
     }
     db = ndb;
+    cout << db << endl;
     out.open(FILE_LOCATION);
     out << db;
     out.close();

@@ -12,7 +12,8 @@ enable_testing()
 #set(PRJ_MAIN main.cpp)
 #add_executable(${PROJECT_NAME} ${PRJ_HEADERS} ${PRJ_SOURCES} ${PRJ_MAIN})
 
-set(PRJ_MAIN jsonTester.cpp)
+#set(PRJ_MAIN jsonTester.cpp)
+set(PRJ_MAIN test.cpp)
 add_executable(${PROJECT_NAME} ${PRJ_MAIN})
 
 

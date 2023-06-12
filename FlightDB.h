@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "Flight.h"
 #include "Passenger.h"
+#include "Database.h"
 
 using std::vector, std::unordered_map;
 

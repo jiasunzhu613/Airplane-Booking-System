@@ -9,7 +9,7 @@
 #include "date/date.h"
 #include "Passenger.h"
 #include "Airport.h"
-#include "FlightTimesDB.h"
+#include "FlightDB.h"
 
 using std::vector, std::array, std::pair, std::stringstream;
 using namespace std::chrono;
@@ -26,7 +26,7 @@ using namespace date;
  * - time on json is measured in minutes
  */
 const static int NUM_OF_PASSENGERS = 11;
-static FlightTimesDB flightTimesDB{};
+static FlightDB flightDB{}; // TODO: review later if we even need this variable
 
 class Flight {
 private:
@@ -42,8 +42,8 @@ public:
     string getFrom() const;
     string getTo() const;
     array<bool, NUM_OF_PASSENGERS>& getSeatTaken();
-    string getDepartureTime() const; // TODO: change to string return type maybe
-    string getArrivalTime() const; // TODO: change to string return type maybe
+    string getDepartureTime() const;
+    string getArrivalTime() const;
     void setFrom(string f);
     void setTo(string t);
     void setTime(int y, int m, int d, int h, int min);
