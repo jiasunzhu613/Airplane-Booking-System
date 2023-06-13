@@ -105,6 +105,12 @@ int main(){
     std::cout << system_clock::now() << " UTC\n";
 //    auto time = make_time(tp-dp);
 
+    db.getAirports()["YCM"].addTimeToAirport("ABC", 90);
+    for (auto[from, time] : db.getAirports()["YCM"].getTimesToAirport()){
+        cout << from << time << endl;
+    }
+
+    db.save();
 
     int y, m, d, h, min;
     cin >> y;

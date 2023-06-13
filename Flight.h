@@ -10,6 +10,7 @@
 #include <sstream>
 #include "date/date.h"
 #include "Passenger.h"
+#include "Attendent.h"
 #include "Airport.h"
 //#include "FlightDB.h"
 
@@ -37,15 +38,17 @@ private:
     string from;
     string to;
     string flightID;
+    string attendentID;
     array<system_clock::time_point, 2> time;
 
 public:
     Flight();
-    Flight(string f, string t, string id, int y, int m, int d, int h, int min, int tt);
+    Flight(string f, string t, string id, string attendentID, int y, int m, int d, int h, int min, int tt);
     array<Passenger*, NUM_OF_PASSENGERS>& getPassengers();
     string getFrom() const;
     string getTo() const;
     string getFlightID() const;
+    string getAttedentID() const;
     array<bool, NUM_OF_PASSENGERS>& getSeatTaken();
     string getSeatsNotTaken();
     string getDepartureTime() const;
@@ -53,8 +56,10 @@ public:
     void setFrom(string f);
     void setTo(string t);
     void setFlightID(string id);
+    void setAttendentID(string id);
     void setTime(int y, int m, int d, int h, int min, int t);
     void buySeat(Passenger* passenger, int ind);
+    void removeSeat(int ind);
     string toString();
     string getDetails();
 };

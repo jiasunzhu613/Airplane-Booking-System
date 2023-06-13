@@ -24,7 +24,7 @@
 #include "stb_image.h"
 
 using std::cout, std::cerr, std::cin, std::endl, std::unordered_set,
-        std::to_string, std::string, std::vector, std::sort;
+        std::to_string, std::string, std::vector, std::sort, std::stoi;
 
 #define GL_SILENCE_DEPRECATION
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -53,9 +53,9 @@ using std::cout, std::cerr, std::cin, std::endl, std::unordered_set,
 // Declare global variables
 FlightDB db;
 std::regex course_match{"([A-Z]{3}([1-2]O|[1-4]C|[1-4]M|[1-4]UE|[1-4]U))"};
-std::regex teacher_match{"([A-Z]{1}\\d{5})"};
+std::regex flight_match{"([A-Z]{1}\\d{5})"};
 std::regex passenger_match{"([A-Z]{1}\\d{5})"};
-std::regex student_match{"([A-Z]{1}\\d{9})"};
+std::regex attendent_match{"([A-Z]{1}\\d{5})"};
 
 // Teacher-related form submission validity
 bool valid_id = true;
@@ -76,54 +76,29 @@ bool valid_address_create = true;
 bool valid_grade_create = true;
 ImVec4 table_header_color = ImVec4(0.48f, 0.31f, 0.82f, 1.00f);
 
-//Student Table Sorter
-//struct StudentSorter {
-//    vector<Student *> students;
-//    static const ImGuiTableSortSpecs *s_current_sort_specs;
-//
-//    void init(Course &course, ImGuiTableSortSpecs *sort_specs) {
-//        students.clear();
-//        students.reserve(course.getStudents().size());
-//        students.insert(students.begin(), course.getStudents().begin(),
-//                        course.getStudents().end());
-//
-//        StudentSorter::s_current_sort_specs = sort_specs;
-//        sort(students.begin(), students.end(), CompareWithSortSpecs);
-//    }
-//
-//    static bool CompareWithSortSpecs(const Student *lhs, const Student *rhs) {
-//        for (int n = 0; n < s_current_sort_specs->SpecsCount; ++n) {
-//            const ImGuiTableColumnSortSpecs *sort_spec =
-//                    &StudentSorter::s_current_sort_specs->Specs[n];
-//
-//            int d = 0;
-//
-//            switch (sort_spec->ColumnUserID) {
-//                case SORT_ID:
-//                    d = Student::idCompare(lhs, rhs);
-//                    break;
-//                case SORT_FirstName:
-//                    d = Student::firstNameCompare(lhs, rhs);
-//                    break;
-//                case SORT_LastName:
-//                    d = Student::lastNameCompare(lhs, rhs);
-//                    break;
-//                case SORT_Grade:
-//                    d = Student::gradeCompare(lhs, rhs);
-//                    break;
-//                case SORT_NumLates:
-//                    d = Student::numLatesCompare(lhs, rhs);
-//                    break;
-//            }
-//            if (d != 0)
-//                return (d > 0) ^
-//                       sort_spec->SortDirection == ImGuiSortDirection_Ascending;
-//
-//        }
-//        return Student::idCompare(lhs, rhs);
-//    }
-//};
-//const ImGuiTableSortSpecs *StudentSorter::s_current_sort_specs = NULL;
+string logged_in_passenger;
+string logged_in_attendent;
+bool show_log_in_window = true;
+bool show_logged_in_window = false;
+bool showAttendentWindow = false;
+bool showPassengerWindow = false;
+bool view_flights = false;
+
+bool valid_flight_id = true;
+bool valid_flight_from = true;
+bool valid_flight_to = true;
+bool valid_flight_year = true;
+bool valid_flight_month = true;
+bool valid_flight_day = true;
+bool valid_flight_hour = true;
+bool valid_flight_minute = true;
+
+bool valid_airport_code = true;
+bool valid_airport_name = true;
+
+bool valid_distance_from = true;
+bool valid_distance_to = true;
+bool valid_distance_time = true;
 
 // Input filter
 struct TextFilters {
@@ -136,9 +111,9 @@ struct TextFilters {
         return 1;
     }
 
-    static int FilterTeacherIDInput(ImGuiInputTextCallbackData *data) {
+    static int FilterFlightIDInput(ImGuiInputTextCallbackData *data) {
         if (data->EventChar < 256 &&
-            strchr("Cc1234567890", (char)data->EventChar))
+            strchr("Ff1234567890", (char)data->EventChar))
             return 0;
         return 1;
     }
@@ -146,6 +121,13 @@ struct TextFilters {
     static int FilterPassengerIDInput(ImGuiInputTextCallbackData *data) {
         if (data->EventChar < 256 &&
             strchr("Pp1234567890", (char)data->EventChar))
+            return 0;
+        return 1;
+    }
+
+    static int FilterAttendentIDInput(ImGuiInputTextCallbackData *data) {
+        if (data->EventChar < 256 &&
+            strchr("Aa1234567890", (char)data->EventChar))
             return 0;
         return 1;
     }
@@ -174,11 +156,19 @@ static void HelpMarker(const char *);
 
 void log();
 
-bool validateInputTeacherID(string);
+void reset();
+
+void resetGUI();
+
+bool validateInputFlightID(string);
+
+bool validateFlight(string to, string from);
+
+bool validateFlightDistance(string to, string from);
 
 bool validateInputPassengerID(string);
 
-bool validateInputStudentID(string);
+bool validateInputAttendentID(string);
 
 void addingStudentToCourse(string, bool &);
 
@@ -241,17 +231,12 @@ int main(int, char **) {
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     //States
-    string logged_in_passenger;
     int pwflags1 = ImGuiInputTextFlags_Password;
     bool showPW1 = false;
     int pwflags2 = ImGuiInputTextFlags_Password;
     bool showPW2 = false;
     int pwflags3 = ImGuiInputTextFlags_Password;
     bool showPW3 = false;
-    bool show_log_in_window = true;
-    bool show_logged_in_window = false;
-    bool showAttendentWindow = false;
-    bool showPassengerWindow = false;
 
 
 
@@ -299,82 +284,451 @@ int main(int, char **) {
             pwflags3 = ImGuiInputTextFlags_Password;
         else
             pwflags3 = 0;
-        if (showAttendentWindow){
+        reset();
 
-        }else if (showPassengerWindow){
+        if (showAttendentWindow){
             if (show_logged_in_window){
-                static float f = 0.0f;
-                static int counter = 0;
-                ImGui::SetNextWindowSize(ImVec2(800, 400));
+                ImGui::SetNextWindowSize(ImVec2(1280, 720));
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
                 ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
                                         ImVec2(0.5f, 0.5f));
-                // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                // ImGuiWindowFlags_NoCollapse
-                ImGui::Begin("BUY SEATS!", 0, ImGuiCond_FirstUseEver);
-                vector<string> items{};
-                for (auto [flightID, flight] : db.getFlights()) {
-                    items.push_back(flight.toString());
-                }
-                static int item_current_idx =
-                        0;
-                if (ImGui::BeginListBox(
-                        "##listbox",
-                        ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
-                    for (int n = 0; n < items.size(); n++) {
-                        const bool is_selected = (item_current_idx == n);
-                        if (ImGui::Selectable(items[n].c_str(), is_selected))
-                            item_current_idx = n;
-                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) &&
-                            ImGui::BeginTooltip()) {
-                            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
-                            ImGui::TextUnformatted(
-                                    db.getFlights()[items[n]].getDetails().c_str());
-                            ImGui::PopTextWrapPos();
-                            ImGui::EndTooltip();
+                ImGui::Begin("##a", 0, ImGuiWindowFlags_NoTitleBar);
+                static vector<std::string> active_tabs{};
+                static int next_tab_id = 0;
+                if (next_tab_id == 0) {
+                    for (auto [flightID, flight] : db.getFlights()) {
+                        if (flight.getAttedentID() ==
+                            logged_in_attendent) {
+                            active_tabs.push_back(flightID);
+                            next_tab_id++;
                         }
-
-                        // Set the initial focus when opening the combo (scrolling +
-                        // keyboard navigation focus)
-                        if (is_selected) ImGui::SetItemDefaultFocus();
                     }
-                    ImGui::EndListBox();
                 }
-                ImGui::Text("Seat Number You Want To Buy");
-                static char buf1[2] = "";
-                string seatLabel;
-                if (valid_seat)
-                    seatLabel = "##a";
-                else
-                    seatLabel = "SEAT ALREADY TAKEN";
-                ImGui::InputText(
-                        seatLabel.c_str(), buf1, 7,
-                        ImGuiInputTextFlags_EnterReturnsTrue |
-                        ImGuiInputTextFlags_CharsUppercase );  // Display some text (you
-                // can use a format strings
-                // too)
-                if (ImGui::Button("BUY")) {
-                    if (db.getFlights()[items[item_current_idx]].getSeatTaken()[std::stoi(buf1)]){
-                        valid_seat = false;
-                    }else{
-                        valid_seat = true;
-                    }
 
-                    if (valid_seat){
-                        db.getFlights()[items[item_current_idx]].buySeat(&db.getPassengers()[logged_in_passenger], std::stoi(buf1));
-                        db.save();
-                        ImGui::OpenPopup("SEAT PURCHASE SUCCESSFUL!");
-                        ImGui::SetNextWindowSize(ImVec2(400, 100));
+                static ImGuiTabBarFlags tab_bar_flags =
+                        ImGuiTabBarFlags_AutoSelectNewTabs |
+                        ImGuiTabBarFlags_Reorderable |
+                        ImGuiTabBarFlags_FittingPolicyResizeDown |
+                        ImGuiTabBarFlags_TabListPopupButton;
+
+                if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags)) {
+                    // Demo Trailing Tabs: click the "+" button to add a new tab
+                    // (in your app you may want to use a font icon instead of
+                    // the "+") Note that we submit it before the regular tabs,
+                    // but because of the ImGuiTabItemFlags_Trailing flag it
+                    // will always appear at the end.
+                    if (ImGui::TabItemButton("OPEN",
+                                             ImGuiTabItemFlags_Trailing |
+                                             ImGuiTabItemFlags_NoTooltip)) {
+                        ImGui::OpenPopup("OPEN FLIGHT");
+                        ImGui::SetNextWindowSize(ImVec2(400, 200));
                         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
                                                 ImVec2(0.5f, 0.5f));
                     }
-                }
-                bool open_buy_seat_success_window = true;
-                if (ImGui::BeginPopupModal("SEAT PURCHASE SUCCESSFUL!",
-                                           &open_buy_seat_success_window)) {
-                    ImGui::Text(fmt::format("YOU HAVE SUCCESSFULLY PURCHASED SEAT {}", buf1).c_str());
-                    for (char &c: buf1) c = '\0';
-                    ImGui::EndPopup();
+                    bool open_course_window = true;
+                    if (ImGui::BeginPopupModal("OPEN FLIGHT",
+                                               &open_course_window)) {
+                        vector<string> items{};
+                        for (auto [flightID, flight] : db.getFlights()) {
+                            if (find(active_tabs.begin(), active_tabs.end(),
+                                     flightID) == active_tabs.end() and
+                                flight.getAttedentID() ==
+                                logged_in_attendent) {
+                                items.push_back(flightID);
+                            }
+                        }
+                        static int item_current_idx =
+                                0;  // Here we store our selection data as an index.
+                        // Custom size: use all width, 5 items tall
+                        if (!items.empty())
+                            ImGui::Text("UNOPENED FLIGHTS:");
+                        else
+                            ImGui::Text(
+                                    "ALL AVAILABLE FLIGHTS HAVE ALREADY BEEN OPENED.");
+                        if (ImGui::BeginListBox(
+                                "##listbox",
+                                ImVec2(
+                                        -FLT_MIN,
+                                        5 * ImGui::GetTextLineHeightWithSpacing()))) {
+                            for (int n = 0; n < items.size(); n++) {
+                                const bool is_selected = (item_current_idx == n);
+                                if (ImGui::Selectable(items[n].c_str(),
+                                                      is_selected))
+                                    item_current_idx = n;
+
+                                // Set the initial focus when opening the combo
+                                // (scrolling + keyboard navigation focus)
+                                if (is_selected) ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndListBox();
+                        }
+                        if (!items.empty()) {
+                            if (ImGui::Button("OPEN")) {
+                                active_tabs.push_back(items[item_current_idx]);
+                                next_tab_id++;
+                                ImGui::CloseCurrentPopup();
+                            }
+                        } else {
+                            if (ImGui::Button("CLOSE")) ImGui::CloseCurrentPopup();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    if (ImGui::TabItemButton("ADD AIRPORT", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip)) {
+                        ImGui::OpenPopup("CREATE AIRPORT");
+                        ImGui::SetNextWindowSize(ImVec2(400, 200));
+                        ImGui::SetNextWindowPos(center,
+                                                ImGuiCond_Appearing,
+                                                ImVec2(0.5f, 0.5f));
+                    }
+
+                    bool add_airport_window = true;
+                    if (ImGui::BeginPopupModal("CREATE AIRPORT",
+                                               &add_airport_window)) {
+                        ImGui::Text("Airport Code");
+
+                        static char code[4] = "";
+                        string CodeLabel;
+                        if (valid_airport_code)
+                            CodeLabel = "##a";
+                        else
+                            CodeLabel = "INVALID CODE";
+                        ImGui::InputText(CodeLabel.c_str(), code, 4,
+                                         ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_CharsUppercase);
+
+                        ImGui::Text("Name");
+                        static char name[64] = "";
+                        string NameLabel;
+                        if (valid_airport_name)
+                            NameLabel = "##b";
+                        else
+                            NameLabel = "REQUIRED";
+                        ImGui::InputText(NameLabel.c_str(), name, 64,
+                                         ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_CharsUppercase);
+
+                        if (ImGui::Button("CREATE")) {
+                            valid_airport_code = (strcmp(code, "") != 0 and db.getAirports().find(code) == db.getAirports().end());
+                            valid_airport_name = strcmp(name, "") != 0;
+
+
+                            if (valid_airport_code and valid_airport_name) {
+                                db.addAirport(Airport{code, name});
+                                db.save();
+                                ImGui::OpenPopup("AIRPORT CREATION SUCCESSFUL!");
+                            }
+                        }
+
+                        bool airport_creation_success_window = true;
+                        if (ImGui::BeginPopupModal("AIRPORT CREATION SUCCESSFUL!",
+                                                   &airport_creation_success_window)) {
+                            ImGui::Text(fmt::format("AIRPORT WITH CODE {} HAS BEEN ADDED!", code).c_str());
+                            add_airport_window = false;
+                            ImGui::EndPopup();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    if (ImGui::TabItemButton("ADD DISTANCE", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip)) {
+                        ImGui::OpenPopup("CREATE DISTANCE");
+                        ImGui::SetNextWindowSize(ImVec2(400, 200));
+                        ImGui::SetNextWindowPos(center,
+                                                ImGuiCond_Appearing,
+                                                ImVec2(0.5f, 0.5f));
+                    }
+
+                    bool add_distance_window = true;
+                    if (ImGui::BeginPopupModal("CREATE DISTANCE",
+                                               &add_distance_window)) {
+                        ImGui::Text("From (Airport Code)");
+                        ImGui::SameLine();
+                        HelpMarker("Airport codes must be 3-lettered codes (e.g. YOW, YCM, YGK, etc.). "
+                                   "The airport must also first exist in the database. If an airport has not been created, "
+                                   "please create it before creating the flight");
+                        static char from[4] = "";
+                        string FromLabel;
+                        if (valid_distance_from)
+                            FromLabel = "##b";
+                        else
+                            FromLabel = "INVALID CODE";
+                        ImGui::InputText(FromLabel.c_str(), from, 4,
+                                         ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_CharsUppercase);
+
+                        ImGui::Text("To (Airport Code)");
+                        static char to[4] = "";
+                        string ToLabel;
+                        if (valid_distance_to)
+                            ToLabel = "##c";
+                        else
+                            ToLabel = "INVALID CODE##a";
+                        ImGui::InputText(ToLabel.c_str(), to, 4,
+                                         ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_CharsUppercase);
+
+                        ImGui::Text("Time Between The Two Airports (in minutes)");
+                        static char time[64] = "";
+                        string TimeLabel;
+                        if (valid_distance_time)
+                            TimeLabel = "##a";
+                        else
+                            TimeLabel = "REQUIRED";
+                        ImGui::InputText(TimeLabel.c_str(), time, 64,
+                                         ImGuiInputTextFlags_EnterReturnsTrue);
+
+                        if (ImGui::Button("CREATE")) {
+                            valid_distance_from = (strcmp(from, to) != 0 and validateFlightDistance(to, from));
+                            valid_distance_to = (strcmp(from, to) != 0 and validateFlightDistance(to, from));
+                            valid_distance_time = strcmp(time, "") != 0;
+
+
+                            if (valid_distance_from and valid_distance_to and valid_distance_time) {
+                                db.getAirports()[to].addTimeToAirport(from, stoi(time));
+                                db.save();
+                                ImGui::OpenPopup("DISTANCE CREATION SUCCESSFUL!");
+                                add_distance_window = false;
+                            }
+                        }
+
+                        bool distance_creation_success_window = true;
+                        if (ImGui::BeginPopupModal("DISTANCE CREATION SUCCESSFUL!",
+                                                   &distance_creation_success_window)) {
+                            ImGui::Text("SUCCESSFULLY CREATED!");
+                            ImGui::EndPopup();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+
+                    if (ImGui::TabItemButton("+",
+                                             ImGuiTabItemFlags_Trailing |
+                                             ImGuiTabItemFlags_NoTooltip)) {
+                        ImGui::OpenPopup("CREATE FLIGHT");
+                        ImGui::SetNextWindowSize(ImVec2(400, 200));
+                        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                                ImVec2(0.5f, 0.5f));
+                    }
+
+                    bool add_flight_window = true;
+                    if (ImGui::BeginPopupModal("CREATE FLIGHT",
+                                               &add_flight_window)) {
+                        ImGui::Text("FLIGHT ID");
+
+                        static char id[7] = "";
+                        string IDLabel;
+                        if (valid_flight_id)
+                            IDLabel = "##a";
+                        else
+                            IDLabel = "INVALID ID";
+                        ImGui::InputText(IDLabel.c_str(), id, 7,
+                                         ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_CharsUppercase |
+                                         ImGuiInputTextFlags_CallbackCharFilter,
+                                         TextFilters::FilterFlightIDInput);
+
+                        ImGui::Text("From (Airport Code)");
+                        ImGui::SameLine();
+                        HelpMarker("Airport codes must be 3-lettered codes (e.g. YOW, YCM, YGK, etc.). "
+                                   "The airport must also first exist in the database. If an airport has not been created, "
+                                   "please create it before creating the flight");
+                        static char from[4] = "";
+                        string FromLabel;
+                        if (valid_flight_from)
+                            FromLabel = "##b";
+                        else
+                            FromLabel = "INVALID CODE";
+                        ImGui::InputText(FromLabel.c_str(), from, 4,
+                                         ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_CharsUppercase);
+
+                        ImGui::Text("To (Airport Code)");
+                        static char to[4] = "";
+                        string ToLabel;
+                        if (valid_flight_to)
+                            ToLabel = "##c";
+                        else
+                            ToLabel = "INVALID CODE##a";
+                        ImGui::InputText(ToLabel.c_str(), to, 4,
+                                         ImGuiInputTextFlags_EnterReturnsTrue |
+                                         ImGuiInputTextFlags_CharsUppercase);
+
+                        ImGui::Text(fmt::format("{}", validateFlight(to, from)).c_str());
+                        ImGui::Text("Year");
+                        static char year[64] = "";
+                        string YearLabel;
+                        if (valid_flight_year)
+                            YearLabel = "##d";
+                        else
+                            YearLabel = "REQUIRED";
+                        ImGui::InputText(YearLabel.c_str(), year, 64,
+                                         ImGuiInputTextFlags_EnterReturnsTrue);
+
+                        ImGui::Text("Month");
+                        static char month[64] = "";
+                        string MonthLabel;
+                        if (valid_flight_month)
+                            MonthLabel = "##e";
+                        else
+                            MonthLabel = "REQUIRED##a";
+                        ImGui::InputText(MonthLabel.c_str(), month, 64,
+                                         ImGuiInputTextFlags_EnterReturnsTrue);
+
+                        ImGui::Text("Day");
+                        static char day[64] = "";
+                        string DayLabel;
+                        if (valid_flight_day)
+                            DayLabel = "##f";
+                        else
+                            DayLabel = "REQUIRED##b";
+                        ImGui::InputText(DayLabel.c_str(), day, 64,
+                                         ImGuiInputTextFlags_EnterReturnsTrue);
+
+                        ImGui::Text("Hour");
+                        static char hour[64] = "";
+                        string HourLabel;
+                        if (valid_flight_hour)
+                            HourLabel = "##g";
+                        else
+                            HourLabel = "REQUIRED##c";
+                        ImGui::InputText(HourLabel.c_str(), hour, 64,
+                                         ImGuiInputTextFlags_EnterReturnsTrue);
+
+                        ImGui::Text("Minute");
+                        static char minute[64] = "";
+                        string MinuteLabel;
+                        if (valid_flight_minute)
+                            MinuteLabel = "##h";
+                        else
+                            MinuteLabel = "REQUIRED##d";
+                        ImGui::InputText(MinuteLabel.c_str(), minute, 64,
+                                         ImGuiInputTextFlags_EnterReturnsTrue);
+
+                        if (ImGui::Button("CREATE")) {
+                            valid_flight_id = validateInputFlightID(id);
+                            valid_flight_from = (strcmp(from, to) != 0 and validateFlight(to, from));
+                            valid_flight_to = (strcmp(from, to) != 0 and validateFlight(to, from));
+                            valid_flight_year = strcmp(year, "") != 0;
+                            valid_flight_month = strcmp(month, "") != 0;
+                            valid_flight_day = strcmp(day, "") != 0;
+                            valid_flight_hour = strcmp(hour, "") != 0;
+                            valid_flight_minute = strcmp(minute, "") != 0;
+
+
+                            if (valid_flight_id and valid_flight_from and
+                                    valid_flight_to and valid_flight_year and
+                                    valid_flight_month and valid_flight_day and valid_flight_hour and valid_flight_minute) {
+                                db.addFlight(Flight{from, to, id, logged_in_attendent, stoi(year), stoi(month), stoi(day), stoi(hour), stoi(minute), db.getAirports()[to].getTimesToAirport()[from]});
+                                db.save();
+                                ImGui::OpenPopup("FLIGHT CREATION SUCCESSFUL!");
+                            }
+                        }
+
+                        bool flight_creation_success_window = true;
+                        if (ImGui::BeginPopupModal("FLIGHT CREATION SUCCESSFUL!",
+                                                   &flight_creation_success_window)) {
+                            ImGui::Text(fmt::format("A NEW FLIGHT FROM {} to {} HAS BEEN SUCCESSFULLY CREATED.", from, to).c_str());
+                            add_flight_window = false;
+                            ImGui::EndPopup();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    // Submit our regular tabs
+                    for (int n = 0; n < active_tabs.size();) {
+                        bool open = true;
+                        char name[16];
+                        snprintf(name, IM_ARRAYSIZE(name), "%s",
+                                 active_tabs[n].c_str());
+                        if (ImGui::BeginTabItem(name, &open,
+                                                ImGuiTabItemFlags_None)) {
+                            if (ImGui::BeginTable(
+                                    fmt::format("Passengers of Flight {}", active_tabs[n])
+                                            .c_str(),
+                                    6,
+                                    ImGuiTableFlags_Sortable |
+                                    ImGuiTableFlags_SortMulti |
+                                    ImGuiTableFlags_RowBg |
+                                    ImGuiTableFlags_Borders |
+                                    ImGuiTableFlags_BordersH |
+                                    ImGuiTableFlags_BordersOuterH |
+                                    ImGuiTableFlags_BordersInnerH |
+                                    ImGuiTableFlags_BordersV |
+                                    ImGuiTableFlags_BordersOuterV |
+                                    ImGuiTableFlags_BordersInnerV |
+                                    ImGuiTableFlags_BordersOuter |
+                                    ImGuiTableFlags_BordersInner)) {
+                                ImGui::TableSetBgColor(
+                                        ImGuiTableBgTarget_RowBg0,
+                                        ImGui::GetColorU32(table_header_color));
+                                ImGui::TableSetupColumn("Seat", ImGuiTableColumnFlags_DefaultSort,0.0f);
+                                ImGui::TableSetupColumn("Passenger ID", ImGuiTableColumnFlags_DefaultSort,0.0f);
+                                ImGui::TableSetupColumn("First Name", 0, 0.0f);
+                                ImGui::TableSetupColumn("Last Name", 0, 0.0f);
+                                ImGui::TableSetupColumn("Phone Number", 0, 0.0f);
+                                ImGui::TableSetupColumn("Address", ImGuiTableColumnFlags_NoSort, 0.0f);
+                                ImGui::TableHeadersRow();
+
+                                /**
+                                 *
+                                 * SORTING STUDENTS
+                                 *
+                                 *
+                                 */
+
+//                                if (ImGuiTableSortSpecs *sortSpecs = ImGui::TableGetSortSpecs()) {
+//                                    string x = active_tabs[n];
+//                                    Course &course =db.getCourses()[active_tabs[n]];
+//                                    sorterOfStudents.init(course, sortSpecs);
+////                                sortSpecs->SpecsDirty = false;
+////                                if (sortSpecs->SpecsDirty) {
+////                                    sorterOfStudents.init(course, sortSpecs);
+////                                    sortSpecs->SpecsDirty = false;
+////                                }
+//                                }
+                                ImGui::TableNextRow();
+                                for (int i = 0; i < db.getFlights()[active_tabs[n]].getPassengers().size(); i++) {
+                                    ImGui::TableNextColumn();
+                                    ImGui::Text(fmt::format("{}", i).c_str());
+                                    ImGui::TableNextColumn();
+                                    ImGui::Text(db.getFlights()[active_tabs[n]].getPassengers()[i]->getPassengerID().c_str());
+                                    ImGui::TableNextColumn();
+                                    ImGui::Text(db.getFlights()[active_tabs[n]].getPassengers()[i]->getFirstName().c_str());
+                                    ImGui::TableNextColumn();
+                                    ImGui::Text(db.getFlights()[active_tabs[n]].getPassengers()[i]->getLastName().c_str());
+                                    ImGui::TableNextColumn();
+                                    ImGui::Text(
+                                            db.getFlights()[active_tabs[n]].getPassengers()[i]->getPhoneNumber().c_str());
+                                    ImGui::TableNextColumn();
+                                    ImGui::Text(db.getFlights()[active_tabs[n]].getPassengers()[i]->getAddress().c_str());
+                                }
+                                ImGui::TableNextColumn();
+                                if (ImGui::Button("Remove Flight")){
+                                    db.getFlights().erase(active_tabs[n]);
+                                    active_tabs.erase(active_tabs.begin() + n);
+                                    db.save();
+                                    ImGui::OpenPopup("FLIGHT DELETION SUCCESSFUL!");
+                                }
+                                bool flight_deletion_success_window = true;
+                                if (ImGui::BeginPopupModal("FLIGHT DELETION SUCCESSFUL!",
+                                                           &flight_deletion_success_window)) {
+                                    ImGui::Text("FLIGHT HAS BEEN SUCCESSFULLY DELETED!");
+                                    ImGui::EndPopup();
+                                }
+                                ImGui::EndTable();
+                            }
+
+                            ImGui::EndTabItem();
+                        }
+                        db.save();
+                        // these if's control the opening and closing of new
+                        // tabs
+                        if (!open) {
+                            active_tabs.erase(active_tabs.begin() + n);
+                        } else
+                            n++;
+                    }
+                    ImGui::EndTabBar();
                 }
                 ImGui::End();
             }else if (show_log_in_window){
@@ -386,7 +740,402 @@ int main(int, char **) {
                                         ImVec2(0.5f, 0.5f));
                 // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
                 // ImGuiWindowFlags_NoCollapse
-                ImGui::Begin("Log in!", 0, ImGuiCond_FirstUseEver);
+                ImGui::Begin("Log in!", 0);
+                ImGui::Text("Attendent ID");
+                static char buf1[7] = "";
+                string IDLabel;
+                if (valid_id)
+                    IDLabel = "##a";
+                else
+                    IDLabel = "INVALID ID";
+                ImGui::InputText(
+                        IDLabel.c_str(), buf1, 7,
+                        ImGuiInputTextFlags_EnterReturnsTrue |
+                        ImGuiInputTextFlags_CharsUppercase |
+                        ImGuiInputTextFlags_CallbackCharFilter,
+                        TextFilters::FilterAttendentIDInput);  // Display some text (you
+                // can use a format strings
+                // too)
+                ImGui::Text("Password");
+                static char password[64] = "";
+                string PWLabel;
+                if (valid_pw)
+                    PWLabel = "##b";
+                else
+                    PWLabel = "NON-MATCHING PW";
+                ImGui::InputText(PWLabel.c_str(), password, IM_ARRAYSIZE(password),
+                                 pwflags1);
+                ImGui::SameLine();
+                ImGui::Checkbox("Show Password", &showPW1);
+                if (ImGui::Button("Sign In")) {
+                    valid_id = false;
+                    valid_pw = false;
+                    for (auto [attendentID, attendent] : db.getAttendents()) {
+                        if (attendentID == buf1 and attendent.getPassword() == password) {
+                            logged_in_attendent = buf1;
+                            show_logged_in_window = true;
+                            valid_id = true;
+                            valid_pw = true;
+                            for (char &c: buf1) c = '\0';
+                            for (char &c: password) c = '\0';
+                            break;
+                        } else if (attendentID == buf1) {
+                            valid_id = true;
+                        }
+                    }
+                }
+                ImGui::SameLine();
+                ImGui::Text("New Attendent?");
+                ImGui::SameLine();
+                if (ImGui::Button("Create Attendent ID")) {
+                    for (char &c: buf1) c = '\0';
+                    for (char &c: password) c = '\0';
+                    valid_id = true;
+                    valid_pw = true;
+                    showPW1 = false;
+                    show_log_in_window = false;
+                }
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                            1000.0f / io.Framerate, io.Framerate);
+                ImGui::End();
+            }else{
+                ImGui::SetNextWindowSize(ImVec2(400, 200));
+                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                        ImVec2(0.5f, 0.5f));
+                // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                // ImGuiWindowFlags_NoCollapse
+                ImGui::Begin("Sign Up!", 0, ImGuiWindowFlags_NoResize);
+                ImGui::Text("Attendent ID");
+                static char id1[7] = "";
+                string IDLabel;
+                if (valid_id_sign_up)
+                    IDLabel = "##a";
+                else
+                    IDLabel = "INVALID ID";
+                ImGui::InputText(
+                        IDLabel.c_str(), id1, 7,
+                        ImGuiInputTextFlags_EnterReturnsTrue |
+                        ImGuiInputTextFlags_CharsUppercase |
+                        ImGuiInputTextFlags_CallbackCharFilter,
+                        TextFilters::FilterAttendentIDInput);  // Display some text (you
+                // can use a format strings
+                // too)
+                ImGui::NewLine();
+
+                ImGui::Text("First Name");
+                static char fn1[64] = "";
+                string FNLabel;
+                if (valid_first_name_sign_up)
+                    FNLabel = "##b";
+                else
+                    FNLabel = "REQUIRED";
+                ImGui::InputText(
+                        FNLabel.c_str(), fn1,
+                        64);  // Display some text (you can use a format strings too)
+                ImGui::NewLine();
+
+                ImGui::Text("Last Name");
+                static char ln1[64] = "";
+                string LNLabel;
+                if (valid_last_name_sign_up)
+                    LNLabel = "##c";
+                else
+                    LNLabel = "REQUIRED##a";
+                ImGui::InputText(
+                        LNLabel.c_str(), ln1,
+                        64);  // Display some text (you can use a format strings too)
+                ImGui::NewLine();
+
+                ImGui::Text("Address");
+                static char address1[64] = "";
+                string ALabel;
+                if (valid_address_sign_up)
+                    ALabel = "##d";
+                else
+                    ALabel = "REQUIRED##b";
+                ImGui::InputText(
+                        ALabel.c_str(), address1,
+                        64);  // Display some text (you can use a format strings too)
+                ImGui::NewLine();
+
+                ImGui::Text("Phone Number");
+//                ImGui::SameLine();
+//                HelpMarker(
+//                        "Each course listed as teachables must follow valid course "
+//                        "code criterions and be separated by a space.");
+                static char phone[64] = "";
+                string PLabel;
+                if (valid_phone_sign_up)
+                    PLabel = "##e";
+                else
+                    PLabel =
+                            "INVALID PHONE NUMBER";
+                ImGui::InputText(
+                        PLabel.c_str(), phone,
+                        64);  // Display some text (you can use a format strings too)
+                ImGui::NewLine();
+
+                ImGui::Text("Password");
+                static char password2[64] = "";
+                string PWLabel1, PWLabel2;
+                if (valid_pw_sign_up) {
+                    PWLabel1 = "##f";
+                    PWLabel2 = "##g";
+                } else {
+                    PWLabel1 = "NON-MATCHING OR UNFILLED PASSWORDS";
+                    PWLabel2 = "NON-MATCHING OR UNFILLED PASSWORDS##";
+                }
+                ImGui::InputText(PWLabel1.c_str(), password2,
+                                 IM_ARRAYSIZE(password2), pwflags2);
+                ImGui::SameLine();
+                ImGui::Checkbox("Show Password", &showPW2);
+                ImGui::NewLine();
+
+                ImGui::Text("Confirm Password");
+                static char password3[64] = "";
+                ImGui::InputText(PWLabel2.c_str(), password3,
+                                 IM_ARRAYSIZE(password3), pwflags3);
+                ImGui::SameLine();
+                ImGui::Checkbox("Show Password##", &showPW3);
+                ImGui::NewLine();
+
+                if (ImGui::Button("Sign Up")) {
+                    valid_id_sign_up = validateInputAttendentID(id1);
+                    valid_pw_sign_up = (strcmp(password2, password3) == 0 and
+                                        (strcmp(password2, "") != 0 and
+                                         strcmp(password3, "") != 0));
+                    valid_first_name_sign_up = strcmp(fn1, "") != 0;
+                    valid_last_name_sign_up = strcmp(ln1, "") != 0;
+                    valid_address_sign_up = strcmp(address1, "") != 0;
+                    valid_phone_sign_up = strcmp(phone, "") != 0;
+
+                    if (valid_id_sign_up and valid_pw_sign_up and
+                        valid_first_name_sign_up and valid_last_name_sign_up and
+                        valid_address_sign_up and valid_phone_sign_up) {
+                        db.addAttendent(Attendent{fn1, ln1, address1, phone, id1,
+                                                  password2});
+                        db.save();
+                        ImGui::OpenPopup("ID CREATION SUCCESSFUL!");
+                    }
+                }
+                bool account_creation_success_window = true;
+                if (ImGui::BeginPopupModal("ID CREATION SUCCESSFUL!",
+                                           &account_creation_success_window)) {
+                    ImGui::Text(
+                            "YOUR ID HAS BEEN SUCCESSFULLY CREATED. \nLOG IN "
+                            "THROUGH THE LOG IN WINDOW!");
+                    ImGui::EndPopup();
+                }
+                if (!account_creation_success_window){
+                    for (char &c: id1) c = '\0';
+                    for (char &c: fn1) c = '\0';
+                    for (char &c: ln1) c = '\0';
+                    for (char &c: address1) c = '\0';
+                    for (char &c: phone) c = '\0';
+                    for (char &c: password2) c = '\0';
+                    for (char &c: password3) c = '\0';
+                    valid_id_sign_up = true;
+                    valid_pw_sign_up = true;
+                    valid_first_name_sign_up = true;
+                    valid_last_name_sign_up = true;
+                    valid_address_sign_up = true;
+                    valid_phone_sign_up = true;
+                    showPW2 = false;
+                    showPW3 = false;
+                    show_log_in_window = true;
+                }
+
+                if (ImGui::Button("Return To Log In Window")) {
+                    for (char &c: id1) c = '\0';
+                    for (char &c: fn1) c = '\0';
+                    for (char &c: ln1) c = '\0';
+                    for (char &c: address1) c = '\0';
+                    for (char &c: phone) c = '\0';
+                    for (char &c: password2) c = '\0';
+                    for (char &c: password3) c = '\0';
+                    valid_id_sign_up = true;
+                    valid_pw_sign_up = true;
+                    valid_first_name_sign_up = true;
+                    valid_last_name_sign_up = true;
+                    valid_address_sign_up = true;
+                    valid_phone_sign_up = true;
+                    showPW2 = false;
+                    showPW3 = false;
+                    show_log_in_window = true;
+                }
+
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                            1000.0f / io.Framerate, io.Framerate);
+                ImGui::End();
+            }
+        }else if (showPassengerWindow){
+            if (show_logged_in_window){
+                if (view_flights)
+                {
+                    static float f = 0.0f;
+                    static int counter = 0;
+                    ImGui::SetNextWindowSize(ImVec2(800, 400));
+                    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                            ImVec2(0.5f, 0.5f));
+                    // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                    // ImGuiWindowFlags_NoCollapse
+                    ImGui::Begin("Purchased Flights!", 0);
+                    vector<string> items{};
+                    for (auto [flightID, flight]: db.getFlights()) {
+                        for (int i = 0 ; i < flight.getPassengers().size(); i++){
+                            if (flight.getPassengers()[i]->getPassengerID() == logged_in_passenger){
+                                items.push_back(fmt::format("{} seat {}", flight.getFlightID(), i));
+                            }
+                        }
+                    }
+                    static int item_current_idx = 0;
+                    if (ImGui::BeginListBox(
+                            "##listbox",
+                            ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
+                        for (int n = 0; n < items.size(); n++) {
+                            const bool is_selected = (item_current_idx == n);
+                            if (ImGui::Selectable(items[n].c_str(), is_selected))
+                                item_current_idx = n;
+//                            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) &&
+//                                ImGui::BeginTooltip()) {
+//                                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+//                                ImGui::TextUnformatted(
+//                                        db.getFlights()[items[n]].getDetails().c_str());
+//                                ImGui::PopTextWrapPos();
+//                                ImGui::EndTooltip();
+//                            }
+
+                            // Set the initial focus when opening the combo (scrolling +
+                            // keyboard navigation focus)
+                            if (is_selected) ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndListBox();
+                    }
+                    ImGui::Text("Is there a flight purchase you would like to remove?");
+                    if (ImGui::Button("REMOVE")) {
+                        db.getFlights()[items[item_current_idx].substr(0,  items[item_current_idx].find(' '))].removeSeat((int)items[item_current_idx][items[item_current_idx].length()]);
+                        db.save();
+                        items.erase(items.begin() + item_current_idx);
+//                        if (db.getFlights()[items[item_current_idx]].getSeatTaken()[std::stoi(buf1)]) {
+//                            valid_seat = false;
+//                        } else {
+//                            valid_seat = true;
+//                        }
+//
+//                        if (valid_seat) {
+//                            db.getFlights()[items[item_current_idx]].buySeat(&db.getPassengers()[logged_in_passenger],
+//                                                                             std::stoi(buf1));
+//                            db.save();
+//                            ImGui::OpenPopup("SEAT PURCHASE SUCCESSFUL!");
+//                            ImGui::SetNextWindowSize(ImVec2(400, 100));
+//                            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+//                                                    ImVec2(0.5f, 0.5f));
+//                        }
+                    }
+//                    bool open_buy_seat_success_window = true;
+//                    if (ImGui::BeginPopupModal("SEAT PURCHASE SUCCESSFUL!",
+//                                               &open_buy_seat_success_window)) {
+//                        ImGui::Text(fmt::format("YOU HAVE SUCCESSFULLY PURCHASED SEAT {}", buf1).c_str());
+//                        for (char &c: buf1) c = '\0';
+//                        ImGui::EndPopup();
+//                    }
+//
+//                    if (ImGui::Button("View Purchased Flights")){
+//                        view_flights = true;
+//                    }
+                    ImGui::End();
+                }else {
+                    static float f = 0.0f;
+                    static int counter = 0;
+                    ImGui::SetNextWindowSize(ImVec2(800, 400));
+                    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                            ImVec2(0.5f, 0.5f));
+                    // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                    // ImGuiWindowFlags_NoCollapse
+                    ImGui::Begin("Buy Flights!", 0);
+                    vector<string> items{};
+                    for (auto [flightID, flight]: db.getFlights()) {
+                        items.push_back(flight.toString());
+                    }
+                    static int item_current_idx = 0;
+                    if (ImGui::BeginListBox(
+                            "##listbox",
+                            ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
+                        for (int n = 0; n < items.size(); n++) {
+                            const bool is_selected = (item_current_idx == n);
+                            if (ImGui::Selectable(items[n].c_str(), is_selected))
+                                item_current_idx = n;
+                            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) &&
+                                ImGui::BeginTooltip()) {
+                                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+                                ImGui::TextUnformatted(
+                                        db.getFlights()[items[n]].getDetails().c_str());
+                                ImGui::PopTextWrapPos();
+                                ImGui::EndTooltip();
+                            }
+
+                            // Set the initial focus when opening the combo (scrolling +
+                            // keyboard navigation focus)
+                            if (is_selected) ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndListBox();
+                    }
+                    ImGui::Text("Seat Number You Want To Buy");
+                    static char buf1[2] = "";
+                    string seatLabel;
+                    if (valid_seat)
+                        seatLabel = "##a";
+                    else
+                        seatLabel = "SEAT ALREADY TAKEN";
+                    ImGui::InputText(
+                            seatLabel.c_str(), buf1, 7,
+                            ImGuiInputTextFlags_EnterReturnsTrue |
+                            ImGuiInputTextFlags_CharsUppercase);  // Display some text (you
+                    // can use a format strings
+                    // too)
+                    if (ImGui::Button("BUY")) {
+                        if (db.getFlights()[items[item_current_idx]].getSeatTaken()[std::stoi(buf1)]) {
+                            valid_seat = false;
+                        } else {
+                            valid_seat = true;
+                        }
+
+                        if (valid_seat) {
+                            db.getFlights()[items[item_current_idx]].buySeat(&db.getPassengers()[logged_in_passenger],
+                                                                             std::stoi(buf1));
+                            db.save();
+                            ImGui::OpenPopup("SEAT PURCHASE SUCCESSFUL!");
+                            ImGui::SetNextWindowSize(ImVec2(400, 100));
+                            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                                    ImVec2(0.5f, 0.5f));
+                        }
+                    }
+                    bool open_buy_seat_success_window = true;
+                    if (ImGui::BeginPopupModal("SEAT PURCHASE SUCCESSFUL!",
+                                               &open_buy_seat_success_window)) {
+                        ImGui::Text(fmt::format("YOU HAVE SUCCESSFULLY PURCHASED SEAT {}", buf1).c_str());
+                        for (char &c: buf1) c = '\0';
+                        ImGui::EndPopup();
+                    }
+
+                    if (ImGui::Button("View Purchased Flights")){
+                        view_flights = true;
+                    }
+                    ImGui::End();
+                }
+            }else if (show_log_in_window){
+                static float f = 0.0f;
+                static int counter = 0;
+                ImGui::SetNextWindowSize(ImVec2(400, 200));
+                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                        ImVec2(0.5f, 0.5f));
+                // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                // ImGuiWindowFlags_NoCollapse
+                ImGui::Begin("Log in!", 0);
                 ImGui::Text("Passenger ID");
                 static char buf1[7] = "";
                 string IDLabel;
@@ -451,8 +1200,7 @@ int main(int, char **) {
                                         ImVec2(0.5f, 0.5f));
                 // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
                 // ImGuiWindowFlags_NoCollapse
-                ImGui::Begin("Sign Up!", 0,
-                             ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoResize);
+                ImGui::Begin("Sign Up!", 0, ImGuiWindowFlags_NoResize);
                 ImGui::Text("Passenger ID");
                 static char id1[7] = "";
                 string IDLabel;
@@ -632,532 +1380,6 @@ int main(int, char **) {
             ImGui::End();
         }
 
-//        log();
-//        if (show_logged_in_window) {
-//            ImGui::SetNextWindowSize(ImVec2(1280, 720));
-//            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-//            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
-//                                    ImVec2(0.5f, 0.5f));
-//            ImGui::Begin("##a", 0, ImGuiWindowFlags_NoTitleBar);
-//            static vector<std::string> active_tabs{};
-//            static int next_tab_id = 0;
-//            if (next_tab_id == 0) {
-//                for (auto [courseCode, course] : db.getCourses()) {
-//                    if (course.getTeacher()->getEmployeeId() ==
-//                        logged_in_employee) {
-//                        active_tabs.push_back(courseCode);
-//                        next_tab_id++;
-//                    }
-//                }
-//            }
-//
-//            static ImGuiTabBarFlags tab_bar_flags =
-//                    ImGuiTabBarFlags_AutoSelectNewTabs |
-//                    ImGuiTabBarFlags_Reorderable |
-//                    ImGuiTabBarFlags_FittingPolicyResizeDown |
-//                    ImGuiTabBarFlags_TabListPopupButton;
-//
-//            if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags)) {
-//                // Demo Trailing Tabs: click the "+" button to add a new tab
-//                // (in your app you may want to use a font icon instead of
-//                // the "+") Note that we submit it before the regular tabs,
-//                // but because of the ImGuiTabItemFlags_Trailing flag it
-//                // will always appear at the end.
-//                if (ImGui::TabItemButton("OPEN",
-//                                         ImGuiTabItemFlags_Trailing |
-//                                         ImGuiTabItemFlags_NoTooltip)) {
-//                    ImGui::OpenPopup("OPEN COURSE");
-//                    ImGui::SetNextWindowSize(ImVec2(400, 200));
-//                    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
-//                                            ImVec2(0.5f, 0.5f));
-//                }
-//                bool open_course_window = true;
-//                if (ImGui::BeginPopupModal("OPEN COURSE",
-//                                           &open_course_window)) {
-//                    vector<string> items{};
-//                    for (auto [courseCode, course] : db.getCourses()) {
-//                        if (find(active_tabs.begin(), active_tabs.end(),
-//                                 courseCode) == active_tabs.end() and
-//                            course.getTeacher()->getEmployeeId() ==
-//                            logged_in_employee) {
-//                            items.push_back(courseCode);
-//                        }
-//                    }
-//                    static int item_current_idx =
-//                            0;  // Here we store our selection data as an index.
-//                    // Custom size: use all width, 5 items tall
-//                    if (!items.empty())
-//                        ImGui::Text("UNOPENED COURSES:");
-//                    else
-//                        ImGui::Text(
-//                                "ALL AVAILABLE COURSES HAVE ALREADY BEEN OPENED.");
-//                    if (ImGui::BeginListBox(
-//                            "##listbox",
-//                            ImVec2(
-//                                    -FLT_MIN,
-//                                    5 * ImGui::GetTextLineHeightWithSpacing()))) {
-//                        for (int n = 0; n < items.size(); n++) {
-//                            const bool is_selected = (item_current_idx == n);
-//                            if (ImGui::Selectable(items[n].c_str(),
-//                                                  is_selected))
-//                                item_current_idx = n;
-//
-//                            // Set the initial focus when opening the combo
-//                            // (scrolling + keyboard navigation focus)
-//                            if (is_selected) ImGui::SetItemDefaultFocus();
-//                        }
-//                        ImGui::EndListBox();
-//                    }
-//                    if (!items.empty()) {
-//                        if (ImGui::Button("OPEN")) {
-//                            active_tabs.push_back(items[item_current_idx]);
-//                            next_tab_id++;
-//                            ImGui::CloseCurrentPopup();
-//                        }
-//                    } else {
-//                        if (ImGui::Button("CLOSE")) ImGui::CloseCurrentPopup();
-//                    }
-//                    ImGui::EndPopup();
-//                }
-//
-//                if (ImGui::TabItemButton("+",
-//                                         ImGuiTabItemFlags_Trailing |
-//                                         ImGuiTabItemFlags_NoTooltip)) {
-//                    ImGui::OpenPopup("CREATE COURSE");
-//                    ImGui::SetNextWindowSize(ImVec2(400, 200));
-//                    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
-//                                            ImVec2(0.5f, 0.5f));
-//                }
-//                bool add_course_window = true;
-//                if (ImGui::BeginPopupModal("CREATE COURSE",
-//                                           &add_course_window)) {
-//                    ImGui::Text("COURSE ID");
-//
-//                    static char buf1[7] = "";
-//                    ImGui::InputText("##a", buf1, 7,
-//                                     ImGuiInputTextFlags_EnterReturnsTrue |
-//                                     ImGuiInputTextFlags_CharsUppercase |
-//                                     ImGuiInputTextFlags_CallbackCharFilter,
-//                                     TextFilters::FilterCourseInput);
-//                    ImGui::SameLine();
-//                    HelpMarker(
-//                            "Only courses that haven't been created and are teachable will be "
-//                            "validated and allowed to be created. Valid course "
-//                            "codes (e.g. MPM4UE, ICS4U, AVI2O) consist of 3 "
-//                            "letters followed by a number course grade then a "
-//                            "course difficulty).");
-//                    bool inTeachables = db.getTeachers()[logged_in_employee].getTeachables().find(buf1) != std::string::npos;
-//                    if (!std::regex_match(buf1, course_match) or !inTeachables) {
-//                        ImGui::Text("INVALID COURSE CODE OR COURSE CODE NOT IN TEACHABLES");
-//                    }else {
-//                        if (ImGui::Button("CREATE")) {
-//                            int count = 1;
-//                            for (auto [courseCode, course] : db.getCourses()) {
-//                                if (buf1 ==
-//                                    courseCode.substr(0, courseCode.find('-')))
-//                                    count += 1;
-//                            }
-//                            Teacher t;
-//                            for (auto [employeeID, teacher] :
-//                                    db.getTeachers()) {
-//                                if (employeeID == logged_in_employee) {
-//                                    t = teacher;
-//                                    break;
-//                                }
-//                            }
-//                            string output = buf1;
-//                            Course c{&t, output, count, {}};
-//                            db.addCourse(c);
-//                            active_tabs.push_back(
-//                                    fmt::format("{}-{:02}", output, count).c_str());
-//                            for (char &c: buf1) c = '\0';
-//                            ImGui::CloseCurrentPopup();
-//                        }
-//                    }
-//                    ImGui::EndPopup();
-//                }
-//
-//                // Submit our regular tabs
-//                for (int n = 0; n < active_tabs.size();) {
-//                    bool open = true;
-//                    char name[16];
-//                    snprintf(name, IM_ARRAYSIZE(name), "%s",
-//                             active_tabs[n].c_str());
-//                    if (ImGui::BeginTabItem(name, &open,
-//                                            ImGuiTabItemFlags_None)) {
-//                        if (ImGui::BeginTable(
-//                                fmt::format("Students of {}", active_tabs[n])
-//                                        .c_str(),
-//                                6,
-//                                ImGuiTableFlags_Sortable |
-//                                ImGuiTableFlags_SortMulti |
-//                                ImGuiTableFlags_RowBg |
-//                                ImGuiTableFlags_Borders |
-//                                ImGuiTableFlags_BordersH |
-//                                ImGuiTableFlags_BordersOuterH |
-//                                ImGuiTableFlags_BordersInnerH |
-//                                ImGuiTableFlags_BordersV |
-//                                ImGuiTableFlags_BordersOuterV |
-//                                ImGuiTableFlags_BordersInnerV |
-//                                ImGuiTableFlags_BordersOuter |
-//                                ImGuiTableFlags_BordersInner)) {
-//                            ImGui::TableSetBgColor(
-//                                    ImGuiTableBgTarget_RowBg0,
-//                                    ImGui::GetColorU32(table_header_color));
-//                            ImGui::TableSetupColumn(
-//                                    "Student ID", ImGuiTableColumnFlags_DefaultSort,
-//                                    0.0f, SORT_ID);
-//                            ImGui::TableSetupColumn("First Name", 0, 0.0f,
-//                                                    SORT_FirstName);
-//                            ImGui::TableSetupColumn("Last Name", 0, 0.0f,
-//                                                    SORT_LastName);
-//                            ImGui::TableSetupColumn("Grade", 0, 0.0f,
-//                                                    SORT_Grade);
-//                            ImGui::TableSetupColumn(
-//                                    "Number of Lates",
-//                                    ImGuiTableColumnFlags_PreferSortDescending,
-//                                    0.0f, SORT_NumLates);
-//                            ImGui::TableSetupColumn(
-//                                    "Address", ImGuiTableColumnFlags_NoSort, 0.0f);
-//
-//                            ImGui::TableHeadersRow();
-//
-//                            /**
-//                             *
-//                             * SORTING STUDENTS
-//                             *
-//                             *
-//                             */
-//
-//                            if (ImGuiTableSortSpecs *sortSpecs = ImGui::TableGetSortSpecs()) {
-//                                string x = active_tabs[n];
-//                                Course &course =db.getCourses()[active_tabs[n]];
-//                                sorterOfStudents.init(course, sortSpecs);
-////                                sortSpecs->SpecsDirty = false;
-////                                if (sortSpecs->SpecsDirty) {
-////                                    sorterOfStudents.init(course, sortSpecs);
-////                                    sortSpecs->SpecsDirty = false;
-////                                }
-//                            }
-//                            ImGui::TableNextRow();
-//                            for (auto student : sorterOfStudents.students) {
-//                                ImGui::TableNextColumn();
-//                                ImGui::Text(student->getStudentId().c_str());
-//                                ImGui::TableNextColumn();
-//                                ImGui::Text(student->getFirstName().c_str());
-//                                ImGui::TableNextColumn();
-//                                ImGui::Text(student->getLastName().c_str());
-//                                ImGui::TableNextColumn();
-//                                ImGui::Text(
-//                                        to_string(student->getGrade()).c_str());
-//                                ImGui::TableNextColumn();
-//                                ImGui::Text(
-//                                        to_string(student->getNumLates()).c_str());
-//                                ImGui::SameLine();
-//                                if (ImGui::Button(
-//                                        fmt::format("+##{}",
-//                                                    student->getStudentId())
-//                                                .c_str())) {
-//                                    student->addLate();
-//                                }
-//                                ImGui::TableNextColumn();
-//                                ImGui::Text(student->getAddress().c_str());
-//                            }
-//                            ImGui::TableNextColumn();
-//                            if (ImGui::Button("Add Student to Course?")) {
-//                                isAddingStudentToCourse = true;
-//                                ImGui::SetNextWindowSize(ImVec2(400, 200));
-//                                ImGui::SetNextWindowPos(center,
-//                                                        ImGuiCond_Appearing,
-//                                                        ImVec2(0.5f, 0.5f));
-//                            }
-//                            if (isAddingStudentToCourse)
-//                                addingStudentToCourse(active_tabs[n],
-//                                                      isAddingStudentToCourse);
-//
-//                            if (ImGui::Button("Create Student?")) {
-//                                isCreatingStudent = true;
-//                                ImGui::SetNextWindowSize(ImVec2(400, 200));
-//                                ImGui::SetNextWindowPos(center,
-//                                                        ImGuiCond_Appearing,
-//                                                        ImVec2(0.5f, 0.5f));
-//                            }
-//                            if (isCreatingStudent)
-//                                creatingStudent(isCreatingStudent);
-//                            ImGui::EndTable();
-//                        }
-//
-//                        ImGui::EndTabItem();
-//                    }
-//                    db.save();
-//                    // these if's control the opening and closing of new
-//                    // tabs
-//                    if (!open) {
-//                        active_tabs.erase(active_tabs.begin() + n);
-//                    } else
-//                        n++;
-//                }
-//                ImGui::EndTabBar();
-//            }
-//            ImGui::End();
-//        }
-//        else if (show_log_in_window) {
-//            static float f = 0.0f;
-//            static int counter = 0;
-//            ImGui::SetNextWindowSize(ImVec2(400, 200));
-//            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-//            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
-//                                    ImVec2(0.5f, 0.5f));
-//            // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-//            // ImGuiWindowFlags_NoCollapse
-//            ImGui::Begin("Log in!", 0, ImGuiCond_FirstUseEver);
-//            ImGui::Text("Teacher ID");
-//            static char buf1[7] = "";
-//            string IDLabel;
-//            if (valid_id)
-//                IDLabel = "##a";
-//            else
-//                IDLabel = "INVALID ID";
-//            ImGui::InputText(
-//                    IDLabel.c_str(), buf1, 7,
-//                    ImGuiInputTextFlags_EnterReturnsTrue |
-//                    ImGuiInputTextFlags_CharsUppercase |
-//                    ImGuiInputTextFlags_CallbackCharFilter,
-//                    TextFilters::FilterTeacherIDInput);  // Display some text (you
-//            // can use a format strings
-//            // too)
-//            ImGui::Text("Password");
-//            static char password[64] = "";
-//            string PWLabel;
-//            if (valid_pw)
-//                PWLabel = "##b";
-//            else
-//                PWLabel = "NON-MATCHING PW";
-//            ImGui::InputText(PWLabel.c_str(), password, IM_ARRAYSIZE(password),
-//                             pwflags1);
-//            ImGui::SameLine();
-//            ImGui::Checkbox("Show Password", &showPW1);
-//            if (ImGui::Button("Sign In")) {
-//                valid_id = false;
-//                valid_pw = false;
-//                for (auto [employeeID, teacher] : db.getTeachers()) {
-//                    if (employeeID == buf1 and
-//                        teacher.getPassword() == password) {
-//                        logged_in_employee = buf1;
-//                        show_logged_in_window = true;
-//                        valid_id = true;
-//                        valid_pw = true;
-//                        for (char &c: buf1) c = '\0';
-//                        for (char &c: password) c = '\0';
-//                        break;
-//                    } else if (employeeID == buf1) {
-//                        valid_id = true;
-//                    }
-//                }
-//            }
-//            ImGui::SameLine();
-//            ImGui::Text("New Teacher?");
-//            ImGui::SameLine();
-//            if (ImGui::Button("Create Teacher ID")) {
-//                for (char &c: buf1) c = '\0';
-//                for (char &c: password) c = '\0';
-//                valid_id = true;
-//                valid_pw = true;
-//                showPW1 = false;
-//                show_log_in_window = false;
-//            }
-//            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-//                        1000.0f / io.Framerate, io.Framerate);
-//            ImGui::End();
-//        } else {
-//            ImGui::SetNextWindowSize(ImVec2(400, 200));
-//            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-//            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
-//                                    ImVec2(0.5f, 0.5f));
-//            // ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-//            // ImGuiWindowFlags_NoCollapse
-//            ImGui::Begin("Sign Up!", 0,
-//                         ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoResize);
-//            ImGui::Text("Teacher ID");
-//            static char id1[7] = "";
-//            string IDLabel;
-//            if (valid_id_sign_up)
-//                IDLabel = "##a";
-//            else
-//                IDLabel = "INVALID ID";
-//            ImGui::InputText(
-//                    IDLabel.c_str(), id1, 7,
-//                    ImGuiInputTextFlags_EnterReturnsTrue |
-//                    ImGuiInputTextFlags_CharsUppercase |
-//                    ImGuiInputTextFlags_CallbackCharFilter,
-//                    TextFilters::FilterTeacherIDInput);  // Display some text (you
-//            // can use a format strings
-//            // too)
-//            ImGui::NewLine();
-//
-//            ImGui::Text("First Name");
-//            static char fn1[64] = "";
-//            string FNLabel;
-//            if (valid_first_name_sign_up)
-//                FNLabel = "##b";
-//            else
-//                FNLabel = "REQUIRED";
-//            ImGui::InputText(
-//                    FNLabel.c_str(), fn1,
-//                    64);  // Display some text (you can use a format strings too)
-//            ImGui::NewLine();
-//
-//            ImGui::Text("Last Name");
-//            static char ln1[64] = "";
-//            string LNLabel;
-//            if (valid_last_name_sign_up)
-//                LNLabel = "##c";
-//            else
-//                LNLabel = "REQUIRED##a";
-//            ImGui::InputText(
-//                    LNLabel.c_str(), ln1,
-//                    64);  // Display some text (you can use a format strings too)
-//            ImGui::NewLine();
-//
-//            ImGui::Text("Address");
-//            static char address1[64] = "";
-//            string ALabel;
-//            if (valid_address_sign_up)
-//                ALabel = "##d";
-//            else
-//                ALabel = "REQUIRED##b";
-//            ImGui::InputText(
-//                    ALabel.c_str(), address1,
-//                    64);  // Display some text (you can use a format strings too)
-//            ImGui::NewLine();
-//
-//            ImGui::Text("Teachables");
-//            ImGui::SameLine();
-//            HelpMarker(
-//                    "Each course listed as teachables must follow valid course "
-//                    "code criterions and be separated by a space.");
-//            static char teachables1[64] = "";
-//            string TLabel;
-//            if (valid_teachables_sign_up)
-//                TLabel = "##e";
-//            else
-//                TLabel =
-//                        "ONE OR MORE TEACHABLES DOES NOT FOLLOW VALID FORMATTING";
-//            ImGui::InputText(
-//                    TLabel.c_str(), teachables1,
-//                    64);  // Display some text (you can use a format strings too)
-//            ImGui::NewLine();
-//
-//            ImGui::Text("Password");
-//            static char password2[64] = "";
-//            string PWLabel1, PWLabel2;
-//            if (valid_pw_sign_up) {
-//                PWLabel1 = "##f";
-//                PWLabel2 = "##g";
-//            } else {
-//                PWLabel1 = "NON-MATCHING OR UNFILLED PASSWORDS";
-//                PWLabel2 = "NON-MATCHING OR UNFILLED PASSWORDS##";
-//            }
-//            ImGui::InputText(PWLabel1.c_str(), password2,
-//                             IM_ARRAYSIZE(password2), pwflags2);
-//            ImGui::SameLine();
-//            ImGui::Checkbox("Show Password", &showPW2);
-//            ImGui::NewLine();
-//
-//            ImGui::Text("Confirm Password");
-//            static char password3[64] = "";
-//            ImGui::InputText(PWLabel2.c_str(), password3,
-//                             IM_ARRAYSIZE(password3), pwflags3);
-//            ImGui::SameLine();
-//            ImGui::Checkbox("Show Password##", &showPW3);
-//            ImGui::NewLine();
-//
-//            if (ImGui::Button("Sign Up")) {
-//                valid_id_sign_up = validateInputTeacherID(id1);
-//                valid_pw_sign_up = (strcmp(password2, password3) == 0 and
-//                                    (strcmp(password2, "") != 0 and
-//                                     strcmp(password3, "") != 0));
-//                valid_first_name_sign_up = strcmp(fn1, "") != 0;
-//                valid_last_name_sign_up = strcmp(ln1, "") != 0;
-//                valid_address_sign_up = strcmp(address1, "") != 0;
-//                valid_teachables_sign_up = true;
-//                string s = teachables1;
-//                std::string delimiter = " ";
-//                size_t pos = 0;
-//                std::string token;
-//                while ((pos = s.find(delimiter)) != std::string::npos) {
-//                    token = s.substr(0, pos);
-//                    if (!std::regex_match(token, course_match)) {
-//                        valid_teachables_sign_up = false;
-//                        break;
-//                    }
-//                    s.erase(0, pos + delimiter.length());
-//                }
-//
-//                if (!std::regex_match(s, course_match)) {
-//                    valid_teachables_sign_up = false;
-//                }
-//
-//                if (valid_id_sign_up and valid_pw_sign_up and
-//                    valid_first_name_sign_up and valid_last_name_sign_up and
-//                    valid_address_sign_up and valid_teachables_sign_up) {
-//                    db.addTeacher(Teacher{fn1, ln1, address1, teachables1, id1,
-//                                          password2});
-//                    db.save();
-//                    ImGui::OpenPopup("ID CREATION SUCCESSFUL!");
-//                }
-//            }
-//            bool account_creation_success_window = true;
-//            if (ImGui::BeginPopupModal("ID CREATION SUCCESSFUL!",
-//                                       &account_creation_success_window)) {
-//                ImGui::Text(
-//                        "YOUR ID HAS BEEN SUCCESSFULLY CREATED. \nLOG IN "
-//                        "THROUGH THE LOG IN WINDOW!");
-//                ImGui::EndPopup();
-//            }
-//            if (!account_creation_success_window){
-//                for (char &c: id1) c = '\0';
-//                for (char &c: fn1) c = '\0';
-//                for (char &c: ln1) c = '\0';
-//                for (char &c: address1) c = '\0';
-//                for (char &c: teachables1) c = '\0';
-//                for (char &c: password2) c = '\0';
-//                for (char &c: password3) c = '\0';
-//                valid_id_sign_up = true;
-//                valid_pw_sign_up = true;
-//                valid_first_name_sign_up = true;
-//                valid_last_name_sign_up = true;
-//                valid_address_sign_up = true;
-//                valid_teachables_sign_up = true;
-//                showPW2 = false;
-//                showPW3 = false;
-//                show_log_in_window = true;
-//            }
-//
-//            if (ImGui::Button("Return To Log In Window")) {
-//                for (char &c: id1) c = '\0';
-//                for (char &c: fn1) c = '\0';
-//                for (char &c: ln1) c = '\0';
-//                for (char &c: address1) c = '\0';
-//                for (char &c: teachables1) c = '\0';
-//                for (char &c: password2) c = '\0';
-//                for (char &c: password3) c = '\0';
-//                valid_id_sign_up = true;
-//                valid_pw_sign_up = true;
-//                valid_first_name_sign_up = true;
-//                valid_last_name_sign_up = true;
-//                valid_address_sign_up = true;
-//                valid_teachables_sign_up = true;
-//                showPW2 = false;
-//                showPW3 = false;
-//                show_log_in_window = true;
-//            }
-//
-//            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-//                        1000.0f / io.Framerate, io.Framerate);
-//            ImGui::End();
-//        }
-
         // Renders panels
         ImGui::Render();
         int display_w, display_h;
@@ -1243,225 +1465,48 @@ static void HelpMarker(const char *desc) {
     }
 }
 
-//Open debug log window
-//void log() {
-//    ImGui::Begin("Log");
-//    ImGui::Text(db.log(ImGui::Button("Update Logging?")).c_str());
-//    ImGui::End();
-//}
+bool validateFlight(string to, string from) {
+    if (db.getAirports().find(to) == db.getAirports().end()) return false;
+    return db.getAirports()[to].getTimesToAirport().find(from) != db.getAirports()[to].getTimesToAirport().end();
+}
 
-//Open add student to course pop-up modal
-//void addingStudentToCourse(string courseCode, bool &isAddingStudent) {
-//    std::unordered_set<Student *> students =
-//            db.getCourses()[courseCode].getStudents();
-//    ImGui::OpenPopup("Adding Student to Course");
-//    if (ImGui::BeginPopupModal("Adding Student to Course",
-//                               &isAddingStudent)) {
-//        ImGui::Text("FILTER BY: ");
-//        ImGui::SameLine();
-//        static char buf1[64] = "";
-//        ImGui::InputText("##a", buf1, IM_ARRAYSIZE(buf1),
-//                         ImGuiInputTextFlags_EnterReturnsTrue);
-//        vector<string> items{};
-//        // filter/include students into list
-//        std::regex student_list_match{fmt::format(R"(\b\w*{}\w*\b)", buf1),
-//                                      std::regex_constants::icase};
-//        for (auto [studentID, student] : db.getStudents()) {
-//            bool isInCourse = false;
-//            for (Student *student : students) {
-//                if (student->getStudentId() == studentID) {
-//                    isInCourse = true;
-//                    break;
-//                }
-//            }
-//            if (std::regex_search(student.toString(), student_list_match) and
-//                !isInCourse)
-//                items.push_back(studentID);
-//        }
-//        static int item_current_idx =
-//                0;  // Here we store our selection data as an index.
-//        // Custom size: use all width, 5 items tall
-//        if (!items.empty())
-//            ImGui::Text("UNADDED STUDENTS:");
-//        else
-//            ImGui::Text("ALL AVAILABLE STUDENTS HAVE ALREADY BEEN ADDED.");
-//        if (ImGui::BeginListBox(
-//                "##listbox",
-//                ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
-//            for (int n = 0; n < items.size(); n++) {
-//                const bool is_selected = (item_current_idx == n);
-//                if (ImGui::Selectable(items[n].c_str(), is_selected))
-//                    item_current_idx = n;
-//                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) &&
-//                    ImGui::BeginTooltip()) {
-//                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
-//                    ImGui::TextUnformatted(
-//                            db.getStudents()[items[n]].toString().c_str());
-//                    ImGui::PopTextWrapPos();
-//                    ImGui::EndTooltip();
-//                }
-//
-//                // Set the initial focus when opening the combo (scrolling +
-//                // keyboard navigation focus)
-//                if (is_selected) ImGui::SetItemDefaultFocus();
-//            }
-//            ImGui::EndListBox();
-//        }
-//        if (!items.empty()) {
-//            if (ImGui::Button("ADD")) {
-//                Student &studentBeingAdded =
-//                        db.getStudents().at(string{items[item_current_idx]});
-//
-//                db.getCourses()[courseCode].addStudentToClass(
-//                        &studentBeingAdded);
-//                for (char &c: buf1) c = '\0';
-//                isAddingStudent = false;
-//            }
-//        } else {
-//            if (ImGui::Button("CLOSE")){
-//                for (char &c: buf1) c = '\0';
-//                isAddingStudent = false;
-//            }
-//        }
-//        ImGui::EndPopup();
-//    }
-//}
+bool validateFlightDistance(string to, string from) {
+    if (db.getAirports().find(to) == db.getAirports().end()) return false;
+    return db.getAirports()[to].getTimesToAirport().find(from) == db.getAirports()[to].getTimesToAirport().end();
+}
 
-//Open create student pop-up modal
-//void creatingStudent(bool &isCreatingStudent) {
-//    ImGui::OpenPopup("Creating Student");
-//    if (ImGui::BeginPopupModal("Creating Student", &isCreatingStudent)) {
-//        // Student ID
-//        ImGui::Text("Student ID");
-//        static char id1[11] = "";
-//        string IDLabel;
-//        if (valid_id_create)
-//            IDLabel = "##a";
-//        else
-//            IDLabel = "INVALID ID";
-//        ImGui::InputText(
-//                IDLabel.c_str(), id1, 11,
-//                ImGuiInputTextFlags_EnterReturnsTrue |
-//                ImGuiInputTextFlags_CharsUppercase |
-//                ImGuiInputTextFlags_CallbackCharFilter,
-//                TextFilters::FilterStudentIDInput);  // Display some text (you can
-//        // use a format strings too)
-//        ImGui::NewLine();
-//
-//        // First name
-//        ImGui::Text("First Name");
-//        static char fn1[64] = "";
-//        string FNLabel;
-//        if (valid_first_name_create)
-//            FNLabel = "##b";
-//        else
-//            FNLabel = "REQUIRED";
-//        ImGui::InputText(
-//                FNLabel.c_str(), fn1,
-//                64);  // Display some text (you can use a format strings too)
-//        ImGui::NewLine();
-//
-//        // Last name
-//        ImGui::Text("Last Name");
-//        static char ln1[64] = "";
-//        string LNLabel;
-//        if (valid_last_name_create)
-//            LNLabel = "##c";
-//        else
-//            LNLabel = "REQUIRED##a";
-//        ImGui::InputText(
-//                LNLabel.c_str(), ln1,
-//                64);  // Display some text (you can use a format strings too)
-//        ImGui::NewLine();
-//
-//        // Address
-//        ImGui::Text("Address");
-//        static char address1[64] = "";
-//        string ALabel;
-//        if (valid_address_create)
-//            ALabel = "##d";
-//        else
-//            ALabel = "REQUIRED##b";
-//        ImGui::InputText(
-//                ALabel.c_str(), address1,
-//                64);  // Display some text (you can use a format strings too)
-//        ImGui::NewLine();
-//
-//        // Grade
-//        ImGui::Text("Grade");
-//        static char grade[64] = "";
-//        string GLabel;
-//        if (valid_grade_create)
-//            GLabel = "##e";
-//        else
-//            GLabel = "REQUIRED##c";
-//        ImGui::InputText(
-//                GLabel.c_str(), grade, 64, ImGuiInputTextFlags_CallbackCharFilter,
-//                TextFilters::FilterGradeInput);  // Display some text (you can use a
-//        // format strings too)
-//        ImGui::NewLine();
-//
-//        if (!isCreatingStudent){
-//            for (char &c: id1) c = '\0';
-//            for (char &c: fn1) c = '\0';
-//            for (char &c: ln1) c = '\0';
-//            for (char &c: address1) c = '\0';
-//            for (char &c: grade) c = '\0';
-//            valid_id_create = true;
-//            valid_first_name_create = true;
-//            valid_last_name_create = true;
-//            valid_address_create = true;
-//            valid_grade_create = true;
-//        }
-//
-//        if (ImGui::Button("Create")) {
-//            valid_id_create = validateInputStudentID(id1);
-//            valid_first_name_create = strcmp(fn1, "") != 0;
-//            valid_last_name_create = strcmp(ln1, "") != 0;
-//            valid_address_create = strcmp(address1, "") != 0;
-//            valid_grade_create = strcmp(grade, "") != 0;
-//
-//            if (valid_id_create and valid_first_name_create and
-//                valid_last_name_create and valid_address_create and
-//                valid_grade_create) {
-//                db.addStudent(
-//                        Student{fn1, ln1, address1, std::stoi(grade), id1});
-//                db.save();
-//                ImGui::OpenPopup("STUDENT CREATION SUCCESSFUL!");
-//                for (char &c: id1) c = '\0';
-//                for (char &c: fn1) c = '\0';
-//                for (char &c: ln1) c = '\0';
-//                for (char &c: address1) c = '\0';
-//                for (char &c: grade) c = '\0';
-//                isCreatingStudent = false;
-//            }
-//        }
-//        bool account_creation_success_window = true;
-//        if (ImGui::BeginPopupModal("STUDENT CREATION SUCCESSFUL!",
-//                                   &account_creation_success_window)) {
-//            ImGui::Text(
-//                    "STUDENT HAS BEEN SUCCESSFULLY CREATED. \n ADD STUDENT TO "
-//                    "COURSE USING THE \"ADDING STUDENT TO COURSE?\" BUTTON");
-//            ImGui::EndPopup();
-//        }
-//        ImGui::EndPopup();
-//    }
-//}
-
-//Function to validate if a string is a valid teacher ID
-//bool validateInputTeacherID(string in) {
-//    if (!std::regex_match(in, teacher_match)) return false;
-//    return db.getTeachers().find(in) == db.getTeachers().end();
-//}
+//Function to validate if a string is a valid passenger ID
+bool validateInputFlightID(string in) {
+    if (!std::regex_match(in, flight_match)) return false;
+    return db.getFlights().find(in) == db.getFlights().end();
+}
 
 //Function to validate if a string is a valid passenger ID
 bool validateInputPassengerID(string in) {
-    if (!std::regex_match(in, teacher_match)) return false;
+    if (!std::regex_match(in, passenger_match)) return false;
     return db.getPassengers().find(in) == db.getPassengers().end();
 }
 
 //Function to validate if a string is a valid student ID
-//bool validateInputStudentID(string in) {
-//    if (!std::regex_match(in, student_match)) return false;
-//    return db.getStudents().find(in) == db.getStudents().end();
-//}
+bool validateInputAttendentID(string in) {
+    if (!std::regex_match(in, attendent_match)) return false;
+    return db.getAttendents().find(in) == db.getAttendents().end();
+}
+
+//Open debug log window
+void reset() {
+    ImGui::Begin("reset gui?");
+    if (ImGui::Button("Reset?"))
+        resetGUI();
+    ImGui::End();
+}
+
+void resetGUI(){
+    logged_in_passenger = "";
+    logged_in_attendent = "";
+    show_log_in_window = true;
+    show_logged_in_window = false;
+    showAttendentWindow = false;
+    showPassengerWindow = false;
+    db.save();
+}

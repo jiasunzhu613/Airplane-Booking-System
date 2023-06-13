@@ -6,7 +6,7 @@
 
 Flight::Flight(){}
 
-Flight::Flight(string f, string t, string id, int y, int m, int d, int h, int min, int tt) {
+Flight::Flight(string f, string t, string id, string id2, int y, int m, int d, int h, int min, int tt) {
     passengers = array<Passenger*, NUM_OF_PASSENGERS>{}; // expressed as a json::array of passenger id's
     passengers.fill(new Passenger{});
     seatTaken = array<bool, NUM_OF_PASSENGERS>{}; // expressed as a Json::array
@@ -17,6 +17,7 @@ Flight::Flight(string f, string t, string id, int y, int m, int d, int h, int mi
     from = f; // expressed as a airport 3-lettered code
     to = t; // expressed as a airport 3-lettered code (use as first key)
     flightID = id;
+    attendentID = id2;
 
     // below: expressed as the default string conversion
     time[0] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min};
@@ -30,6 +31,8 @@ string Flight::getFrom() const {return from;}
 string Flight::getTo() const {return to;}
 
 string Flight::getFlightID() const {return flightID;}
+
+string Flight::getAttedentID() const {return attendentID;}
 
 array<bool, NUM_OF_PASSENGERS>& Flight::getSeatTaken() {return seatTaken;}
 
@@ -60,6 +63,8 @@ void Flight::setTo(string t) {to = t;}
 
 void Flight::setFlightID(std::string id) {flightID = id;}
 
+void Flight::setAttendentID(std::string id) {attendentID = id;}
+
 void Flight::setTime(int y, int m, int d, int h, int min, int t) {
     time[0] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min};
     time[1] = sys_days{date::year{y}/m/d} + hours{h} + minutes{min + t};
@@ -68,6 +73,12 @@ void Flight::setTime(int y, int m, int d, int h, int min, int t) {
 void Flight::buySeat(Passenger* passenger, int ind) {
     passengers[ind] = passenger;
     seatTaken[ind] = true;
+}
+
+void Flight::removeSeat(int ind) {
+    seatTaken[ind] = false;
+//    delete passengers[ind];
+    passengers[ind] = new Passenger{};
 }
 
 string Flight::toString() {

@@ -1,10 +1,27 @@
 {
 	"Airports" : 
 	{
+		"ABC" : 
+		{
+			"Distances" : 
+			{
+				"YOW" : 90
+			},
+			"Name" : "AMERICAN B C"
+		},
+		"APC" : 
+		{
+			"Distances" : 
+			{
+				"YOW" : 90
+			},
+			"Name" : "AMERICA PARENT C"
+		},
 		"YCM" : 
 		{
 			"Distances" : 
 			{
+				"ABC" : 90,
 				"YOW" : 185
 			},
 			"Name" : "Niagara District Airport"
@@ -13,6 +30,7 @@
 		{
 			"Distances" : 
 			{
+				"ABC" : 90,
 				"YOW" : 121
 			},
 			"Name" : "Kingston Norman Rogers Airport"
@@ -50,51 +68,72 @@
 			"Name" : "Toronto Pearson International Airport"
 		}
 	},
+	"Attendents" : 
+	{
+		"A12345" : 
+		{
+			"Address" : "c",
+			"First Name" : "a",
+			"Last Name" : "b",
+			"Password" : "1",
+			"Phone Number" : "a"
+		},
+		"A12346" : 
+		{
+			"Address" : "c",
+			"First Name" : "b",
+			"Last Name" : "b",
+			"Password" : "2",
+			"Phone Number" : "b"
+		}
+	},
 	"Flights" : 
 	{
 		"F12345" : 
 		{
+			"Attendent ID" : "A12345",
 			"Departure" : "2024-12-04 10:30:00.000000",
 			"From" : "YOW",
 			"Passengers" : 
 			[
-				"P12345",
+				"invalid id",
 				"P12345",
 				"P12345",
 				"P12345",
 				"invalid id",
 				"invalid id",
 				"invalid id",
-				"invalid id",
+				"P12345",
 				"P12345",
 				"P12345"
 			],
 			"Seats Taken" : 
 			[
-				true,
+				false,
 				true,
 				true,
 				true,
 				false,
 				false,
 				false,
-				false,
+				true,
 				true,
 				true
 			],
 			"To" : "YCM"
 		},
-		"F12346" : 
+		"F99999" : 
 		{
-			"Departure" : "2024-12-04 10:30:00.000000",
+			"Attendent ID" : "A12345",
+			"Departure" : "2023-01-01 01:01:00.000000",
 			"From" : "YOW",
 			"Passengers" : 
 			[
-				"P12345",
-				"P12345",
-				"P12345",
-				"P12345",
-				"P12345",
+				"invalid id",
+				"invalid id",
+				"invalid id",
+				"invalid id",
+				"invalid id",
 				"invalid id",
 				"invalid id",
 				"invalid id",
@@ -103,18 +142,18 @@
 			],
 			"Seats Taken" : 
 			[
-				true,
-				true,
-				true,
-				true,
-				true,
+				false,
+				false,
+				false,
+				false,
+				false,
 				false,
 				false,
 				false,
 				false,
 				false
 			],
-			"To" : "YYZ"
+			"To" : "YCM"
 		}
 	},
 	"Passengers" : 

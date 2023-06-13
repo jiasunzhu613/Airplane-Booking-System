@@ -12,12 +12,15 @@
 class Attendent : public Person{
 private:
     string attendentID;
+    string password;
 public:
     Attendent();
-    Attendent(string, string, string);//fn, ln, id
-    Attendent(string, string, string, string, string);//fn, ln, add, phone, id
+    Attendent(string, string, string, string);//fn, ln, id, pw
+    Attendent(string, string, string, string, string, string);//fn, ln, add, phone, id, pw
     string getAttendentID() const;
+    string getPassword() const;
     void setAttendentID(string);
+    void setPassword(string pw);
 };
 
 
