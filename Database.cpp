@@ -11,8 +11,7 @@ Database::Database(){
 }
 
 void Database::load(FlightDB* inMemoryDB){
-    cout << db << endl;
-    //read in airports
+    //Load airport variables values from .json file
     for (const string to : db["Airports"].getMemberNames()){
         Json::Value& airportJSON = db["Airports"][to];
         string name = airportJSON["Name"].asString();
@@ -23,34 +22,28 @@ void Database::load(FlightDB* inMemoryDB){
         }
     }
 
+    //Load flight variables values from .json file
     for (const string id : db["Flights"].getMemberNames()){
         Json::Value& flightJSON = db["Flights"][id];
         string from = flightJSON["From"].asString();
         string to = flightJSON["To"].asString();
         string attendentID = flightJSON["Attendent ID"].asString();
-        //reference time format: 2022-03-12 05:45:00
-        //2022-03-12 05:45:00
-        //0123456789012345678
-        //          ^here onwards add 10 to digit
-        //do times first
         string time = flightJSON["Departure"].asString();
         int y = stoi(time.substr(0, 4));
         int m = stoi(time.substr(5, 7));
         int d = stoi(time.substr(8, 10));
         int h = stoi(time.substr(11, 13));
         int min = stoi(time.substr(14, 16));
-        cout << "work1" << endl;
         inMemoryDB->flights[id] = Flight{from, to, id, attendentID, y, m, d, h, min, inMemoryDB->airports[to].getTimesToAirport()[from]};
-        cout << "work2" << endl;
         for (int i = 0; i < flightJSON["Passengers"].size(); i++){
             inMemoryDB->flights[id].getPassengers()[i] = &inMemoryDB->passengers[flightJSON["Passengers"][i].asString()];
         }
         for (int i = 0; i < flightJSON["Seats Taken"].size(); i++){
             inMemoryDB->flights[id].getSeatTaken()[i] = flightJSON["Seats Taken"][i].asBool();
         }
-        //then do seats and passengers, order is wtv
     }
 
+    //Load passenger variables values from .json file
     for (const string id : db["Passengers"].getMemberNames()){
         Json::Value& passengerJSON = db["Passengers"][id];
         string fn = passengerJSON["First Name"].asString();
@@ -61,6 +54,7 @@ void Database::load(FlightDB* inMemoryDB){
         inMemoryDB->passengers[id] = Passenger{fn, ln, address, phone, id, pw};
     }
 
+    //Load attendent variables values from .json file
     for (const string id : db["Attendents"].getMemberNames()){
         Json::Value& passengerJSON = db["Attendents"][id];
         string fn = passengerJSON["First Name"].asString();
@@ -75,6 +69,7 @@ void Database::load(FlightDB* inMemoryDB){
 void Database::save(FlightDB* inMemoryDB){
     Json::Value ndb;
 
+    //Save airport variables values from .json file
     for (auto[code, airport] : inMemoryDB->airports){
         Json::Value& airportJSON = ndb["Airports"][code];
         airportJSON["Name"] = airport.getName();
@@ -84,6 +79,7 @@ void Database::save(FlightDB* inMemoryDB){
         }
     }
 
+    //Save passenger variables values from .json file
     for (auto[id, passenger] : inMemoryDB->passengers){
         Json::Value& passengerJSON = ndb["Passengers"][id];
         passengerJSON["First Name"] = passenger.getFirstName();
@@ -93,6 +89,7 @@ void Database::save(FlightDB* inMemoryDB){
         passengerJSON["Password"] = passenger.getPassword();
     }
 
+    //Save attendent variables values from .json file
     for (auto[id, attendent] : inMemoryDB->attendents){
         Json::Value& passengerJSON = ndb["Attendents"][id];
         passengerJSON["First Name"] = attendent.getFirstName();
@@ -102,6 +99,7 @@ void Database::save(FlightDB* inMemoryDB){
         passengerJSON["Password"] = attendent.getPassword();
     }
 
+    //Save flight variables values from .json file
     for (auto[id, flight] : inMemoryDB->flights){
         Json::Value& flightJSON = ndb["Flights"][flight.getFlightID()];
         flightJSON["From"] = flight.getFrom();

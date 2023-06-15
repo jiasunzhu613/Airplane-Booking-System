@@ -52,12 +52,11 @@ using std::cout, std::cerr, std::cin, std::endl, std::unordered_set,
 
 // Declare global variables
 FlightDB db;
-std::regex course_match{"([A-Z]{3}([1-2]O|[1-4]C|[1-4]M|[1-4]UE|[1-4]U))"};
 std::regex flight_match{"([A-Z]{1}\\d{5})"};
 std::regex passenger_match{"([A-Z]{1}\\d{5})"};
 std::regex attendent_match{"([A-Z]{1}\\d{5})"};
 
-// Teacher-related form submission validity
+// Attendent-related form submission validity
 bool valid_id = true;
 bool valid_pw = true;
 bool valid_id_sign_up = true;
@@ -68,14 +67,9 @@ bool valid_address_sign_up = true;
 bool valid_phone_sign_up = true;
 bool valid_seat = true;
 
-// Student-related for submission validity
-bool valid_id_create = true;
-bool valid_first_name_create = true;
-bool valid_last_name_create = true;
-bool valid_address_create = true;
-bool valid_grade_create = true;
 ImVec4 table_header_color = ImVec4(0.48f, 0.31f, 0.82f, 1.00f);
 
+// Passenger-related form submission validity
 string logged_in_passenger;
 string logged_in_attendent;
 bool show_log_in_window = true;
@@ -83,7 +77,10 @@ bool show_logged_in_window = false;
 bool showAttendentWindow = false;
 bool showPassengerWindow = false;
 bool view_flights = false;
+bool view_guide = false;
 
+
+// Flight-related form submission validity
 bool valid_flight_id = true;
 bool valid_flight_from = true;
 bool valid_flight_to = true;
@@ -93,24 +90,17 @@ bool valid_flight_day = true;
 bool valid_flight_hour = true;
 bool valid_flight_minute = true;
 
+// Airport-related form submission validity
 bool valid_airport_code = true;
 bool valid_airport_name = true;
 
+// Airport-distance-related form submission validity
 bool valid_distance_from = true;
 bool valid_distance_to = true;
 bool valid_distance_time = true;
 
 // Input filter
 struct TextFilters {
-    static int FilterCourseInput(ImGuiInputTextCallbackData *data) {
-        if (data->EventChar < 256 &&
-            strchr("QWERTYUIOPASDFGHJKLZXCVBNMqwertyuio"
-                   "pasdfghjklzxcvbnm1234",
-                   (char)data->EventChar))
-            return 0;
-        return 1;
-    }
-
     static int FilterFlightIDInput(ImGuiInputTextCallbackData *data) {
         if (data->EventChar < 256 &&
             strchr("Ff1234567890", (char)data->EventChar))
@@ -131,20 +121,6 @@ struct TextFilters {
             return 0;
         return 1;
     }
-
-    static int FilterStudentIDInput(ImGuiInputTextCallbackData *data) {
-        if (data->EventChar < 256 &&
-            strchr("Ss1234567890", (char)data->EventChar))
-            return 0;
-        return 1;
-    }
-
-    static int FilterGradeInput(ImGuiInputTextCallbackData *data) {
-        if (data->EventChar < 256 &&
-            strchr("1234567890", (char)data->EventChar))
-            return 0;
-        return 1;
-    }
 };
 
 // Declare functions (initialized at the bottom of file)
@@ -153,8 +129,6 @@ bool LoadTextureFromFile(const char *, GLuint *, int *, int *);
 static void glfw_error_callback(int, const char *);
 
 static void HelpMarker(const char *);
-
-void log();
 
 void reset();
 
@@ -170,12 +144,9 @@ bool validateInputPassengerID(string);
 
 bool validateInputAttendentID(string);
 
-void addingStudentToCourse(string, bool &);
-
-void creatingStudent(bool &);
-
 // Main code
 int main(int, char **) {
+    //Initialize flight database
     db = FlightDB{};
     db.reset();
 
@@ -238,11 +209,6 @@ int main(int, char **) {
     int pwflags3 = ImGuiInputTextFlags_Password;
     bool showPW3 = false;
 
-
-
-//    StudentSorter sorterOfStudents;
-//    StudentSorter::s_current_sort_specs = nullptr;
-
     bool isAddingStudentToCourse = false;
     bool isCreatingStudent = false;
     // Main loop
@@ -271,6 +237,7 @@ int main(int, char **) {
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
+        //Creates new frame
         ImGui::NewFrame();
         if (!showPW1)
             pwflags1 = ImGuiInputTextFlags_Password;
@@ -284,15 +251,31 @@ int main(int, char **) {
             pwflags3 = ImGuiInputTextFlags_Password;
         else
             pwflags3 = 0;
+        //Open "reset" window
         reset();
 
-        if (showAttendentWindow){
+        /*
+         * Main if statement to control the appearance of main window
+         * - if showAttendentWindow is true, the window for attendents will show
+         * - if showPassengerWindow is true, the window for passengers will show
+         */
+        if (view_guide){
+            ImGui::Text("The initial window displays 2 buttons. Clicking on the “Attendent” button will open "
+                        "the attendent-features-related window where you can sign in as an attendent, create an "
+                        "attendent account or manage flights. Some specific features of the attendent window include: "
+                        "tabs, tab buttons (where you can create/open flights/airports), listboxes, and tables. Clicking "
+                        "on the “Passenger” button will open the passenger-features-related window where you can sign in "
+                        "as a passenger, create a passenger account and buy or remove flights. Some specific features of "
+                        "the passenger window include: listboxes. ")
+        }else if (showAttendentWindow){
             if (show_logged_in_window){
+                //Set up window size and position
                 ImGui::SetNextWindowSize(ImVec2(1280, 720));
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
                 ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
                                         ImVec2(0.5f, 0.5f));
                 ImGui::Begin("##a", 0, ImGuiWindowFlags_NoTitleBar);
+                //Set up window tabs
                 static vector<std::string> active_tabs{};
                 static int next_tab_id = 0;
                 if (next_tab_id == 0) {
@@ -325,9 +308,10 @@ int main(int, char **) {
                         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
                                                 ImVec2(0.5f, 0.5f));
                     }
-                    bool open_course_window = true;
+                    //open popup for when user wants to open a flight
+                    bool open_flight_window = true;
                     if (ImGui::BeginPopupModal("OPEN FLIGHT",
-                                               &open_course_window)) {
+                                               &open_flight_window)) {
                         vector<string> items{};
                         for (auto [flightID, flight] : db.getFlights()) {
                             if (find(active_tabs.begin(), active_tabs.end(),
@@ -337,14 +321,14 @@ int main(int, char **) {
                                 items.push_back(flightID);
                             }
                         }
-                        static int item_current_idx =
-                                0;  // Here we store our selection data as an index.
+                        static int item_current_idx = 0;  // Here we store our selection data as an index.
                         // Custom size: use all width, 5 items tall
                         if (!items.empty())
                             ImGui::Text("UNOPENED FLIGHTS:");
                         else
                             ImGui::Text(
                                     "ALL AVAILABLE FLIGHTS HAVE ALREADY BEEN OPENED.");
+                        //Open listbox for user to choose which flight to open
                         if (ImGui::BeginListBox(
                                 "##listbox",
                                 ImVec2(
@@ -362,6 +346,8 @@ int main(int, char **) {
                             }
                             ImGui::EndListBox();
                         }
+                        //Checking if a user is able to open a window (if user has opened all flights,
+                        // there are no more flights to open)
                         if (!items.empty()) {
                             if (ImGui::Button("OPEN")) {
                                 active_tabs.push_back(items[item_current_idx]);
@@ -374,6 +360,7 @@ int main(int, char **) {
                         ImGui::EndPopup();
                     }
 
+                    //Tab button to add an airport
                     if (ImGui::TabItemButton("ADD AIRPORT", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip)) {
                         ImGui::OpenPopup("CREATE AIRPORT");
                         ImGui::SetNextWindowSize(ImVec2(400, 200));
@@ -382,6 +369,7 @@ int main(int, char **) {
                                                 ImVec2(0.5f, 0.5f));
                     }
 
+                    //open create airport popup
                     bool add_airport_window = true;
                     if (ImGui::BeginPopupModal("CREATE AIRPORT",
                                                &add_airport_window)) {
@@ -416,6 +404,10 @@ int main(int, char **) {
                             if (valid_airport_code and valid_airport_name) {
                                 db.addAirport(Airport{code, name});
                                 db.save();
+                                for (char& c : code) c = '\0';
+                                for (char& c : name) c = '\0';
+                                valid_airport_code = true;
+                                valid_airport_name = true;
                                 ImGui::OpenPopup("AIRPORT CREATION SUCCESSFUL!");
                             }
                         }
@@ -430,6 +422,7 @@ int main(int, char **) {
                         ImGui::EndPopup();
                     }
 
+                    //add "add distance" tab button
                     if (ImGui::TabItemButton("ADD DISTANCE", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip)) {
                         ImGui::OpenPopup("CREATE DISTANCE");
                         ImGui::SetNextWindowSize(ImVec2(400, 200));
@@ -438,6 +431,7 @@ int main(int, char **) {
                                                 ImVec2(0.5f, 0.5f));
                     }
 
+                    //open popup to create a distance between airports
                     bool add_distance_window = true;
                     if (ImGui::BeginPopupModal("CREATE DISTANCE",
                                                &add_distance_window)) {
@@ -486,6 +480,12 @@ int main(int, char **) {
                             if (valid_distance_from and valid_distance_to and valid_distance_time) {
                                 db.getAirports()[to].addTimeToAirport(from, stoi(time));
                                 db.save();
+                                for (char& c : from) c = '\0';
+                                for (char& c : to) c = '\0';
+                                for (char& c : time) c = '\0';
+                                valid_distance_from = true;
+                                valid_distance_to = true;
+                                valid_distance_time = true;
                                 ImGui::OpenPopup("DISTANCE CREATION SUCCESSFUL!");
                                 add_distance_window = false;
                             }
@@ -501,6 +501,7 @@ int main(int, char **) {
                     }
 
 
+                    //Add tab button to create a flight
                     if (ImGui::TabItemButton("+",
                                              ImGuiTabItemFlags_Trailing |
                                              ImGuiTabItemFlags_NoTooltip)) {
@@ -510,6 +511,7 @@ int main(int, char **) {
                                                 ImVec2(0.5f, 0.5f));
                     }
 
+                    //open popup to create a flight
                     bool add_flight_window = true;
                     if (ImGui::BeginPopupModal("CREATE FLIGHT",
                                                &add_flight_window)) {
@@ -620,6 +622,22 @@ int main(int, char **) {
                                     valid_flight_month and valid_flight_day and valid_flight_hour and valid_flight_minute) {
                                 db.addFlight(Flight{from, to, id, logged_in_attendent, stoi(year), stoi(month), stoi(day), stoi(hour), stoi(minute), db.getAirports()[to].getTimesToAirport()[from]});
                                 db.save();
+                                for (char& c : id) c = '\0';
+                                for (char& c : to) c = '\0';
+                                for (char& c : from) c = '\0';
+                                for (char& c : year) c = '\0';
+                                for (char& c : month) c = '\0';
+                                for (char& c : day) c = '\0';
+                                for (char& c : hour) c = '\0';
+                                for (char& c : minute) c = '\0';
+                                valid_flight_id = true;
+                                valid_flight_from = true;
+                                valid_flight_to = true;
+                                valid_flight_year = true;
+                                valid_flight_month = true;
+                                valid_flight_day = true;
+                                valid_flight_hour = true;
+                                valid_flight_minute = true;
                                 ImGui::OpenPopup("FLIGHT CREATION SUCCESSFUL!");
                             }
                         }
@@ -634,7 +652,7 @@ int main(int, char **) {
                         ImGui::EndPopup();
                     }
 
-                    // Submit our regular tabs
+                    // Submit our regular tabs (show tabs that are present in active_tabs vector)
                     for (int n = 0; n < active_tabs.size();) {
                         bool open = true;
                         char name[16];
@@ -642,6 +660,7 @@ int main(int, char **) {
                                  active_tabs[n].c_str());
                         if (ImGui::BeginTabItem(name, &open,
                                                 ImGuiTabItemFlags_None)) {
+                            //begin a table to show all information about passengers on a certain flight
                             if (ImGui::BeginTable(
                                     fmt::format("Passengers of Flight {}", active_tabs[n])
                                             .c_str(),
@@ -669,38 +688,21 @@ int main(int, char **) {
                                 ImGui::TableSetupColumn("Address", ImGuiTableColumnFlags_NoSort, 0.0f);
                                 ImGui::TableHeadersRow();
 
-                                /**
-                                 *
-                                 * SORTING STUDENTS
-                                 *
-                                 *
-                                 */
-
-//                                if (ImGuiTableSortSpecs *sortSpecs = ImGui::TableGetSortSpecs()) {
-//                                    string x = active_tabs[n];
-//                                    Course &course =db.getCourses()[active_tabs[n]];
-//                                    sorterOfStudents.init(course, sortSpecs);
-////                                sortSpecs->SpecsDirty = false;
-////                                if (sortSpecs->SpecsDirty) {
-////                                    sorterOfStudents.init(course, sortSpecs);
-////                                    sortSpecs->SpecsDirty = false;
-////                                }
-//                                }
                                 ImGui::TableNextRow();
                                 for (int i = 0; i < db.getFlights()[active_tabs[n]].getPassengers().size(); i++) {
                                     ImGui::TableNextColumn();
-                                    ImGui::Text(fmt::format("{}", i).c_str());
+                                    ImGui::Text("%s", fmt::format("{}", i).c_str());
                                     ImGui::TableNextColumn();
-                                    ImGui::Text(db.getFlights()[active_tabs[n]].getPassengers()[i]->getPassengerID().c_str());
+                                    ImGui::Text("%s", db.getFlights()[active_tabs[n]].getPassengers()[i]->getPassengerID().c_str());
                                     ImGui::TableNextColumn();
-                                    ImGui::Text(db.getFlights()[active_tabs[n]].getPassengers()[i]->getFirstName().c_str());
+                                    ImGui::Text("%s", db.getFlights()[active_tabs[n]].getPassengers()[i]->getFirstName().c_str());
                                     ImGui::TableNextColumn();
-                                    ImGui::Text(db.getFlights()[active_tabs[n]].getPassengers()[i]->getLastName().c_str());
+                                    ImGui::Text("%s", db.getFlights()[active_tabs[n]].getPassengers()[i]->getLastName().c_str());
                                     ImGui::TableNextColumn();
                                     ImGui::Text(
-                                            db.getFlights()[active_tabs[n]].getPassengers()[i]->getPhoneNumber().c_str());
+                                            "%s", db.getFlights()[active_tabs[n]].getPassengers()[i]->getPhoneNumber().c_str());
                                     ImGui::TableNextColumn();
-                                    ImGui::Text(db.getFlights()[active_tabs[n]].getPassengers()[i]->getAddress().c_str());
+                                    ImGui::Text("%s", db.getFlights()[active_tabs[n]].getPassengers()[i]->getAddress().c_str());
                                 }
                                 ImGui::TableNextColumn();
                                 if (ImGui::Button("Remove Flight")){
@@ -731,9 +733,10 @@ int main(int, char **) {
                     ImGui::EndTabBar();
                 }
                 ImGui::End();
-            }else if (show_log_in_window){
+            }else if (show_log_in_window){ //Log in window
                 static float f = 0.0f;
                 static int counter = 0;
+                //Set up window size and position
                 ImGui::SetNextWindowSize(ImVec2(400, 200));
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
                 ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
@@ -767,6 +770,7 @@ int main(int, char **) {
                                  pwflags1);
                 ImGui::SameLine();
                 ImGui::Checkbox("Show Password", &showPW1);
+                //Validate sign in's
                 if (ImGui::Button("Sign In")) {
                     valid_id = false;
                     valid_pw = false;
@@ -784,6 +788,7 @@ int main(int, char **) {
                         }
                     }
                 }
+                //change appearance of window forr user to create a new attendent account
                 ImGui::SameLine();
                 ImGui::Text("New Attendent?");
                 ImGui::SameLine();
@@ -798,7 +803,7 @@ int main(int, char **) {
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                             1000.0f / io.Framerate, io.Framerate);
                 ImGui::End();
-            }else{
+            }else{ // attendent account-creation window
                 ImGui::SetNextWindowSize(ImVec2(400, 200));
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
                 ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
@@ -860,10 +865,6 @@ int main(int, char **) {
                 ImGui::NewLine();
 
                 ImGui::Text("Phone Number");
-//                ImGui::SameLine();
-//                HelpMarker(
-//                        "Each course listed as teachables must follow valid course "
-//                        "code criterions and be separated by a space.");
                 static char phone[64] = "";
                 string PLabel;
                 if (valid_phone_sign_up)
@@ -969,9 +970,9 @@ int main(int, char **) {
                             1000.0f / io.Framerate, io.Framerate);
                 ImGui::End();
             }
-        }else if (showPassengerWindow){
-            if (show_logged_in_window){
-                if (view_flights)
+        }else if (showPassengerWindow){ // passenger window
+            if (show_logged_in_window){ // passenger has logged in window
+                if (view_flights) // passenger wants to view their current flights window
                 {
                     static float f = 0.0f;
                     static int counter = 0;
@@ -990,6 +991,7 @@ int main(int, char **) {
                             }
                         }
                     }
+                    //Set up list box
                     static int item_current_idx = 0;
                     if (ImGui::BeginListBox(
                             "##listbox",
@@ -998,57 +1000,22 @@ int main(int, char **) {
                             const bool is_selected = (item_current_idx == n);
                             if (ImGui::Selectable(items[n].c_str(), is_selected))
                                 item_current_idx = n;
-//                            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) &&
-//                                ImGui::BeginTooltip()) {
-//                                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
-//                                ImGui::TextUnformatted(
-//                                        db.getFlights()[items[n]].getDetails().c_str());
-//                                ImGui::PopTextWrapPos();
-//                                ImGui::EndTooltip();
-//                            }
-
-                            // Set the initial focus when opening the combo (scrolling +
-                            // keyboard navigation focus)
                             if (is_selected) ImGui::SetItemDefaultFocus();
                         }
                         ImGui::EndListBox();
                     }
+                    //remove purchased flight
                     ImGui::Text("Is there a flight purchase you would like to remove?");
                     if (ImGui::Button("REMOVE")) {
                         db.getFlights()[items[item_current_idx].substr(0,  items[item_current_idx].find(' '))].removeSeat((int)items[item_current_idx][items[item_current_idx].length()]);
                         db.save();
                         items.erase(items.begin() + item_current_idx);
-//                        if (db.getFlights()[items[item_current_idx]].getSeatTaken()[std::stoi(buf1)]) {
-//                            valid_seat = false;
-//                        } else {
-//                            valid_seat = true;
-//                        }
-//
-//                        if (valid_seat) {
-//                            db.getFlights()[items[item_current_idx]].buySeat(&db.getPassengers()[logged_in_passenger],
-//                                                                             std::stoi(buf1));
-//                            db.save();
-//                            ImGui::OpenPopup("SEAT PURCHASE SUCCESSFUL!");
-//                            ImGui::SetNextWindowSize(ImVec2(400, 100));
-//                            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
-//                                                    ImVec2(0.5f, 0.5f));
-//                        }
                     }
-//                    bool open_buy_seat_success_window = true;
-//                    if (ImGui::BeginPopupModal("SEAT PURCHASE SUCCESSFUL!",
-//                                               &open_buy_seat_success_window)) {
-//                        ImGui::Text(fmt::format("YOU HAVE SUCCESSFULLY PURCHASED SEAT {}", buf1).c_str());
-//                        for (char &c: buf1) c = '\0';
-//                        ImGui::EndPopup();
-//                    }
-//
-//                    if (ImGui::Button("View Purchased Flights")){
-//                        view_flights = true;
-//                    }
                     ImGui::End();
                 }else {
                     static float f = 0.0f;
                     static int counter = 0;
+                    //Set up window size and position
                     ImGui::SetNextWindowSize(ImVec2(800, 400));
                     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
                     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
@@ -1060,6 +1027,7 @@ int main(int, char **) {
                     for (auto [flightID, flight]: db.getFlights()) {
                         items.push_back(flight.toString());
                     }
+                    //Begin list box
                     static int item_current_idx = 0;
                     if (ImGui::BeginListBox(
                             "##listbox",
@@ -1083,6 +1051,7 @@ int main(int, char **) {
                         }
                         ImGui::EndListBox();
                     }
+                    //Ask user which seat they would like to purchase
                     ImGui::Text("Seat Number You Want To Buy");
                     static char buf1[2] = "";
                     string seatLabel;
@@ -1193,7 +1162,7 @@ int main(int, char **) {
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                             1000.0f / io.Framerate, io.Framerate);
                 ImGui::End();
-            }else{
+            }else{ // create passenger account window
                 ImGui::SetNextWindowSize(ImVec2(400, 200));
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
                 ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
@@ -1255,10 +1224,6 @@ int main(int, char **) {
                 ImGui::NewLine();
 
                 ImGui::Text("Phone Number");
-//                ImGui::SameLine();
-//                HelpMarker(
-//                        "Each course listed as teachables must follow valid course "
-//                        "code criterions and be separated by a space.");
                 static char phone[64] = "";
                 string PLabel;
                 if (valid_phone_sign_up)
@@ -1364,7 +1329,7 @@ int main(int, char **) {
                             1000.0f / io.Framerate, io.Framerate);
                 ImGui::End();
             }
-        }else{
+        }else{ // initial window for user to choose passenger or attendent sign in
             ImGui::SetNextWindowSize(ImVec2(800, 400));
             ImVec2 center = ImGui::GetMainViewport()->GetCenter();
             ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
@@ -1376,6 +1341,10 @@ int main(int, char **) {
 
             if (ImGui::Button("PASSENGER WINDOW")) {
                 showPassengerWindow = true;
+            }
+
+            if (ImGui::Button("USER GUIDE")){
+                view_guide = true;
             }
             ImGui::End();
         }
@@ -1465,17 +1434,19 @@ static void HelpMarker(const char *desc) {
     }
 }
 
+//Helper function to validate a flight
 bool validateFlight(string to, string from) {
     if (db.getAirports().find(to) == db.getAirports().end()) return false;
     return db.getAirports()[to].getTimesToAirport().find(from) != db.getAirports()[to].getTimesToAirport().end();
 }
 
+//Helper function to validate a flight time
 bool validateFlightDistance(string to, string from) {
     if (db.getAirports().find(to) == db.getAirports().end()) return false;
     return db.getAirports()[to].getTimesToAirport().find(from) == db.getAirports()[to].getTimesToAirport().end();
 }
 
-//Function to validate if a string is a valid passenger ID
+//Function to validate if a string is a valid Flight ID
 bool validateInputFlightID(string in) {
     if (!std::regex_match(in, flight_match)) return false;
     return db.getFlights().find(in) == db.getFlights().end();
@@ -1487,7 +1458,7 @@ bool validateInputPassengerID(string in) {
     return db.getPassengers().find(in) == db.getPassengers().end();
 }
 
-//Function to validate if a string is a valid student ID
+//Function to validate if a string is a valid attendent ID
 bool validateInputAttendentID(string in) {
     if (!std::regex_match(in, attendent_match)) return false;
     return db.getAttendents().find(in) == db.getAttendents().end();

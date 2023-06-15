@@ -18,27 +18,31 @@ using std::vector, std::unordered_map;
 
 class FlightDB {
 private:
-    //TODO: either vector or unordered_map (dont know what to put as key if use unordered_map)
+    //Variables
     unordered_map<string, Flight> flights;
     unordered_map<string, Passenger> passengers;
     unordered_map<string, Attendent> attendents;
     unordered_map<string, Airport> airports;
     Database db;
 public:
+    //Constructor
     FlightDB();
+
+    //Accessors and Mutators
     unordered_map<string, Flight> & getFlights();
     unordered_map<string, Passenger>& getPassengers();
     unordered_map<string, Attendent>& getAttendents();
     unordered_map<string, Airport>& getAirports();
-
     void addFlight(Flight flight);
     void addPassenger(Passenger passenger);
     void addAirport(Airport airport);
     void addAttendent(Attendent attendent);
 
+    //Save and load database
     void reset();
     void save();
 
+    //Friend helper functions to load and save database
     friend void Database::load(FlightDB*);
     friend void Database::save(FlightDB*);
 };

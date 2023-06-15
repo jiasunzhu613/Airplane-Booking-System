@@ -33,6 +33,7 @@ const static int NUM_OF_PASSENGERS = 10;
 
 class Flight {
 private:
+    //Variables
     array<Passenger*, NUM_OF_PASSENGERS> passengers;
     array<bool, NUM_OF_PASSENGERS> seatTaken;
     string from;
@@ -40,10 +41,12 @@ private:
     string flightID;
     string attendentID;
     array<system_clock::time_point, 2> time;
-
 public:
+    //Constructor
     Flight();
     Flight(string f, string t, string id, string attendentID, int y, int m, int d, int h, int min, int tt);
+
+    //Accessors and Mutators
     array<Passenger*, NUM_OF_PASSENGERS>& getPassengers();
     string getFrom() const;
     string getTo() const;
@@ -60,6 +63,8 @@ public:
     void setTime(int y, int m, int d, int h, int min, int t);
     void buySeat(Passenger* passenger, int ind);
     void removeSeat(int ind);
+
+    //toString functions
     string toString();
     string getDetails();
 };

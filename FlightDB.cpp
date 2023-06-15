@@ -5,9 +5,6 @@
 #include "FlightDB.h"
 
 FlightDB::FlightDB() {
-//    flights = vector<Flight>{};
-//    passengers = unordered_map<string, Passenger>{};
-//    airports = unordered_map<string, Airport>{};
     Database db{};
 }
 

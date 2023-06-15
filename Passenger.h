@@ -14,9 +14,11 @@ private:
     string passengerID;
     string password;
 public:
+    //Constructor
     Passenger();
     Passenger(string, string, string, string);//fn, ln, id, pw
     Passenger(string, string, string, string, string, string);//fn, ln, add, phone, id, pw
+    //Accessors and Mutators
     string getPassengerID() const;
     string getPassword() const;
     void setPassengerID(string);

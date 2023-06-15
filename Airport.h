@@ -14,12 +14,16 @@ using std::string, std::unordered_map;
 
 class Airport {
 private:
+    //Variables
     string code;
     string name;
     unordered_map<string, int> timesToAirport;
 public:
+    //Constructors
     Airport();
     Airport(string c, string n);
+
+    //Accessors and Mutators
     string getCode() const;
     string getName() const;
     unordered_map<string, int> getTimesToAirport() const;

@@ -21,13 +21,16 @@ const static string FILE_LOCATION = "../jsonFiles/flightsDB.json";
 class FlightDB;
 class Database {
 private:
+    //Variables
     ifstream in;
     ofstream out;
     Json::Value db;
     Json::Reader jsonReader;
 public:
+    //Constructor
     Database();
 
+    //Load and save function
     void load(FlightDB*);
     void save(FlightDB*);
 };

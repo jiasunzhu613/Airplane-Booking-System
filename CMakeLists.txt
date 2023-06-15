@@ -12,11 +12,6 @@ set(PRJ_SOURCES Person.cpp Passenger.cpp Attendent.cpp Flight.cpp Airport.cpp Da
 set(PRJ_MAIN main.cpp)
 add_executable(${PROJECT_NAME} ${PRJ_HEADERS} ${PRJ_SOURCES} ${PRJ_MAIN})
 
-#set(PRJ_MAIN jsonTester.cpp)
-#set(PRJ_MAIN test.cpp)
-#add_executable(${PROJECT_NAME} ${PRJ_MAIN})
-
-
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
@@ -44,6 +39,3 @@ target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
 
 find_package(date CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE date::date date::date-tz)
-
-#find_package(unofficial-sqlite3 CONFIG REQUIRED)
-#target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::sqlite3::sqlite3)
