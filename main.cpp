@@ -260,13 +260,25 @@ int main(int, char **) {
          * - if showPassengerWindow is true, the window for passengers will show
          */
         if (view_guide){
-            ImGui::Text("The initial window displays 2 buttons. Clicking on the “Attendent” button will open "
+            ImGui::SetNextWindowSize(ImVec2(800, 400));
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                    ImVec2(0.5f, 0.5f));
+            ImGui::Begin("Guide Window", 0, ImGuiWindowFlags_NoTitleBar);
+            ImGui::Text("User-guide/Overview of database:");
+            ImGui::NewLine();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
+            ImGui::Text("The initial window displays 2 buttons. Clicking on the \"Attendent\" button will open "
                         "the attendent-features-related window where you can sign in as an attendent, create an "
                         "attendent account or manage flights. Some specific features of the attendent window include: "
                         "tabs, tab buttons (where you can create/open flights/airports), listboxes, and tables. Clicking "
-                        "on the “Passenger” button will open the passenger-features-related window where you can sign in "
+                        "on the \"Passenger\" button will open the passenger-features-related window where you can sign in "
                         "as a passenger, create a passenger account and buy or remove flights. Some specific features of "
-                        "the passenger window include: listboxes. ")
+                        "the passenger window include: listboxes. ");
+            if (ImGui::Button("Return")){
+                view_guide = false;
+            }
+            ImGui::End();
         }else if (showAttendentWindow){
             if (show_logged_in_window){
                 //Set up window size and position
@@ -1011,6 +1023,9 @@ int main(int, char **) {
                         db.save();
                         items.erase(items.begin() + item_current_idx);
                     }
+                    if (ImGui::Button("Return to Purchase Window")){
+                        view_flights = false;
+                    }
                     ImGui::End();
                 }else {
                     static float f = 0.0f;
@@ -1330,7 +1345,7 @@ int main(int, char **) {
                 ImGui::End();
             }
         }else{ // initial window for user to choose passenger or attendent sign in
-            ImGui::SetNextWindowSize(ImVec2(800, 400));
+            ImGui::SetNextWindowSize(ImVec2(1000, 400));
             ImVec2 center = ImGui::GetMainViewport()->GetCenter();
             ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
                                     ImVec2(0.5f, 0.5f));
@@ -1479,5 +1494,6 @@ void resetGUI(){
     show_logged_in_window = false;
     showAttendentWindow = false;
     showPassengerWindow = false;
+    view_guide = false;
     db.save();
 }
